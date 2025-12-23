@@ -1,0 +1,20 @@
+# Build output
+/dist/
+
+# IDE
+.idea/
+.vscode/
+*.swp
+*~
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Database files (local data)
+*.db
+*.sqlite
+
+# Environment
+.env
+.env.local
