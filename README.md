@@ -23,6 +23,12 @@ curl -fsSL https://raw.githubusercontent.com/eddmann/whatsapp-cli/main/install.s
 
 Downloads the pre-built binary for your platform (macOS/Linux) to `~/.local/bin`.
 
+### Homebrew
+
+```bash
+brew install eddmann/tap/whatsapp-cli
+```
+
 ### From Source
 
 Requires Go 1.24+ with CGO enabled (for SQLite). FFmpeg optional for audio conversion.
