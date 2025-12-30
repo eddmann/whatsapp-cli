@@ -1,0 +1,743 @@
+<!DOCTYPE html>
+<html lang="en" class="scroll-smooth">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+
+    <!-- Primary Meta Tags -->
+    <title>WhatsApp CLI - WhatsApp From Your Terminal | Command Line Tool</title>
+    <meta name="title" content="WhatsApp CLI - WhatsApp From Your Terminal | Command Line Tool">
+    <meta name="description" content="WhatsApp from your terminal. Pipe it, script it, automate it. Query chats, send messages, and integrate with AI agents.">
+    <meta name="keywords" content="WhatsApp CLI, WhatsApp terminal, WhatsApp automation, command line, CLI tool, WhatsApp scripting, WhatsApp API, messaging automation, Claude Code">
+    <meta name="robots" content="index, follow">
+    <meta name="author" content="Edd Mann">
+    <meta name="theme-color" content="#22c55e">
+    <meta name="color-scheme" content="light dark">
+
+    <!-- Canonical URL -->
+    <link rel="canonical" href="https://eddmann.com/whatsapp-cli/">
+
+    <!-- Favicons -->
+    <link rel="icon" type="image/png" href="logo.png">
+    <link rel="apple-touch-icon" href="logo.png">
+
+    <!-- Open Graph / Facebook -->
+    <meta property="og:type" content="website">
+    <meta property="og:url" content="https://eddmann.com/whatsapp-cli/">
+    <meta property="og:title" content="WhatsApp CLI - WhatsApp From Your Terminal">
+    <meta property="og:description" content="WhatsApp from your terminal. Pipe it, script it, automate it. Query chats, send messages, and integrate with AI agents.">
+    <meta property="og:image" content="https://eddmann.com/whatsapp-cli/preview.png">
+    <meta property="og:site_name" content="WhatsApp CLI">
+
+    <!-- Twitter -->
+    <meta property="twitter:card" content="summary_large_image">
+    <meta property="twitter:url" content="https://eddmann.com/whatsapp-cli/">
+    <meta property="twitter:title" content="WhatsApp CLI - WhatsApp From Your Terminal">
+    <meta property="twitter:description" content="WhatsApp from your terminal. Pipe it, script it, automate it. Query chats, send messages, and integrate with AI agents.">
+    <meta property="twitter:image" content="https://eddmann.com/whatsapp-cli/preview.png">
+
+    <!-- Structured Data (JSON-LD) -->
+    <script type="application/ld+json">
+    {
+        "@context": "https://schema.org",
+        "@type": "SoftwareApplication",
+        "name": "WhatsApp CLI",
+        "operatingSystem": "macOS, Linux",
+        "applicationCategory": "DeveloperApplication",
+        "offers": {
+            "@type": "Offer",
+            "price": "0",
+            "priceCurrency": "USD"
+        },
+        "description": "WhatsApp from your terminal. Pipe it, script it, automate it. Query chats, send messages, and integrate with AI agents.",
+        "downloadUrl": "https://github.com/eddmann/whatsapp-cli/releases/latest",
+        "softwareVersion": "1.0.0",
+        "author": {
+            "@type": "Person",
+            "name": "Edd Mann"
+        },
+        "image": "https://eddmann.com/whatsapp-cli/logo.png"
+    }
+    </script>
+
+    <!-- Theme flash prevention -->
+    <script>
+        if (localStorage.getItem('theme-preference') === 'dark' ||
+            (!localStorage.getItem('theme-preference') && window.matchMedia('(prefers-color-scheme: dark)').matches)) {
+            document.documentElement.classList.add('dark');
+        }
+    </script>
+
+    <!-- Fonts -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=DM+Sans:opsz,wght@9..40,400;9..40,500;9..40,600;9..40,700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+
+    <!-- Tailwind CSS -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script>
+        tailwind.config = {
+            darkMode: 'class',
+            theme: {
+                extend: {
+                    fontFamily: {
+                        'sans': ['DM Sans', 'system-ui', 'sans-serif'],
+                        'mono': ['JetBrains Mono', 'monospace'],
+                    },
+                    colors: {
+                        'whatsapp': {
+                            50: '#f0fdf4',
+                            100: '#dcfce7',
+                            200: '#bbf7d0',
+                            300: '#86efac',
+                            400: '#4ade80',
+                            500: '#22c55e',
+                            600: '#16a34a',
+                            700: '#15803d',
+                            800: '#166534',
+                            900: '#14532d',
+                        },
+                    },
+                },
+            },
+        }
+    </script>
+
+    <style>
+        * { font-family: 'DM Sans', system-ui, sans-serif; }
+
+        html, body {
+            background: linear-gradient(180deg, #f8fafc 0%, #f0fdf4 50%, #f1f5f9 100%);
+            min-height: 100vh;
+        }
+
+        html.dark, html.dark body {
+            background: linear-gradient(180deg, #0f172a 0%, #0d1f17 50%, #0f172a 100%);
+        }
+
+        .gradient-text {
+            background: linear-gradient(135deg, #22c55e 0%, #10b981 100%);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+        }
+
+        .glass-card {
+            background: rgba(255, 255, 255, 0.7);
+            backdrop-filter: blur(20px);
+            -webkit-backdrop-filter: blur(20px);
+            border: 1px solid rgba(255, 255, 255, 0.8);
+            border-radius: 24px;
+            box-shadow: 0 4px 24px rgba(0, 0, 0, 0.04), 0 1px 2px rgba(0, 0, 0, 0.02);
+            transition: all 0.4s cubic-bezier(0.4, 0, 0.2, 1);
+        }
+        html.dark .glass-card {
+            background: rgba(15, 23, 42, 0.7);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            box-shadow: 0 4px 24px rgba(0, 0, 0, 0.3);
+        }
+        .glass-card:hover {
+            transform: translateY(-8px);
+            box-shadow: 0 20px 40px rgba(34, 197, 94, 0.12), 0 8px 16px rgba(0, 0, 0, 0.04);
+            border-color: rgba(34, 197, 94, 0.3);
+        }
+
+        .btn-primary {
+            background: linear-gradient(135deg, #22c55e 0%, #16a34a 100%);
+            border-radius: 16px;
+            transition: all 0.3s ease;
+            box-shadow: 0 4px 16px rgba(34, 197, 94, 0.3);
+        }
+        .btn-primary:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 8px 24px rgba(34, 197, 94, 0.4);
+        }
+
+        .terminal {
+            background: linear-gradient(180deg, #1e293b 0%, #0f172a 100%);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            border-radius: 20px;
+            font-family: 'JetBrains Mono', monospace;
+            box-shadow: 0 24px 48px rgba(0, 0, 0, 0.12), 0 8px 16px rgba(0, 0, 0, 0.08), 0 0 0 1px rgba(34, 197, 94, 0.1);
+        }
+        .terminal * {
+            font-family: 'JetBrains Mono', monospace !important;
+        }
+        .terminal-header {
+            background: linear-gradient(180deg, #334155 0%, #1e293b 100%);
+            border-bottom: 1px solid rgba(255, 255, 255, 0.05);
+            border-radius: 20px 20px 0 0;
+        }
+        .terminal-dot { width: 12px; height: 12px; border-radius: 50%; }
+
+        .feature-icon {
+            background: linear-gradient(135deg, rgba(34, 197, 94, 0.1) 0%, rgba(16, 185, 129, 0.1) 100%);
+            border: 1px solid rgba(34, 197, 94, 0.2);
+            border-radius: 16px;
+        }
+
+        .logo-glow {
+            filter: drop-shadow(0 0 20px rgba(34, 197, 94, 0.3));
+        }
+
+        /* Cursor blink animation */
+        .cursor {
+            display: inline-block;
+            width: 8px;
+            height: 18px;
+            background: #22c55e;
+            margin-left: 2px;
+            animation: cursor-blink 1s step-end infinite;
+        }
+        @keyframes cursor-blink {
+            0%, 100% { opacity: 1; }
+            50% { opacity: 0; }
+        }
+
+        /* Terminal content fade */
+        .terminal-content {
+            min-height: 280px;
+        }
+        .terminal-line {
+            opacity: 0;
+            transform: translateY(10px);
+            transition: opacity 0.3s ease, transform 0.3s ease;
+        }
+        .terminal-line.visible {
+            opacity: 1;
+            transform: translateY(0);
+        }
+
+        /* Install tabs */
+        .install-tabs {
+            display: flex;
+            gap: 0;
+            background: linear-gradient(180deg, #334155 0%, #1e293b 100%);
+            border-radius: 20px 20px 0 0;
+            border-bottom: 1px solid rgba(255, 255, 255, 0.05);
+            overflow-x: auto;
+            -webkit-overflow-scrolling: touch;
+        }
+        .install-tab {
+            flex: 1;
+            min-width: fit-content;
+            white-space: nowrap;
+            padding: 12px 20px;
+            background: transparent;
+            border: none;
+            color: #64748b;
+            font-size: 14px;
+            cursor: pointer;
+            transition: all 0.2s ease;
+            position: relative;
+        }
+        .install-tab:hover {
+            color: #94a3b8;
+            background: rgba(255, 255, 255, 0.02);
+        }
+        .install-tab.active {
+            color: #e2e8f0;
+            background: rgba(34, 197, 94, 0.1);
+        }
+        .install-tab.active::after {
+            content: '';
+            position: absolute;
+            bottom: 0;
+            left: 0;
+            right: 0;
+            height: 2px;
+            background: #22c55e;
+        }
+        .install-tab-content {
+            display: none;
+        }
+        .install-tab-content.active {
+            display: flex;
+        }
+
+        @keyframes float {
+            0%, 100% { transform: translateY(0px); }
+            50% { transform: translateY(-12px); }
+        }
+        @keyframes fadeInUp {
+            from { opacity: 0; transform: translateY(30px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+
+        .animate-float { animation: float 6s ease-in-out infinite; }
+        .animate-fade-in-up { opacity: 0; animation: fadeInUp 0.8s ease-out forwards; }
+        .opacity-0-initial { opacity: 0; }
+
+        .stagger-1 { animation-delay: 0.1s !important; }
+        .stagger-2 { animation-delay: 0.2s !important; }
+        .stagger-3 { animation-delay: 0.3s !important; }
+        .stagger-4 { animation-delay: 0.4s !important; }
+        .stagger-5 { animation-delay: 0.5s !important; }
+        .stagger-6 { animation-delay: 0.6s !important; }
+
+        .bg-pattern {
+            background-image: radial-gradient(rgba(34, 197, 94, 0.03) 1px, transparent 1px);
+            background-size: 32px 32px;
+        }
+        html.dark .bg-pattern {
+            background-image: radial-gradient(rgba(34, 197, 94, 0.05) 1px, transparent 1px);
+        }
+
+        .chat-bubble {
+            position: absolute;
+            background: rgba(34, 197, 94, 0.1);
+            border-radius: 18px 18px 18px 4px;
+            padding: 8px 16px;
+            font-size: 12px;
+            color: #16a34a;
+            border: 1px solid rgba(34, 197, 94, 0.2);
+        }
+        html.dark .chat-bubble {
+            background: rgba(34, 197, 94, 0.15);
+            color: #4ade80;
+        }
+
+        @media (prefers-reduced-motion: reduce) {
+            .animate-float, .animate-fade-in-up, [class*="stagger-"], .cursor {
+                animation: none !important;
+            }
+            .opacity-0-initial { opacity: 1; }
+            .glass-card:hover { transform: none; }
+            .terminal-line { opacity: 1; transform: none; }
+        }
+
+        .scrollbar-hide { -ms-overflow-style: none; scrollbar-width: none; }
+        .scrollbar-hide::-webkit-scrollbar { display: none; }
+    </style>
+</head>
+<body class="min-h-screen text-slate-800 dark:text-slate-200 antialiased overflow-x-hidden bg-pattern">
+    <!-- Dark Mode Toggle -->
+    <button class="js-theme-toggle fixed top-6 right-6 z-50 p-3 rounded-2xl bg-white/70 dark:bg-slate-800/70 backdrop-blur-lg border border-gray-200 dark:border-slate-700 shadow-lg hover:shadow-xl transition-all duration-300"
+        aria-label="Toggle dark mode">
+        <svg class="w-5 h-5 text-gray-600 dark:text-gray-300 hidden dark:block" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 3v1m0 16v1m9-9h-1M4 12H3m15.364 6.364l-.707-.707M6.343 6.343l-.707-.707m12.728 0l-.707.707M6.343 17.657l-.707.707M16 12a4 4 0 11-8 0 4 4 0 018 0z"/>
+        </svg>
+        <svg class="w-5 h-5 text-gray-600 dark:text-gray-300 block dark:hidden" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M20.354 15.354A9 9 0 018.646 3.646 9.003 9.003 0 0012 21a9.003 9.003 0 008.354-5.646z"/>
+        </svg>
+    </button>
+
+    <!-- Hero Section with Terminal Demo -->
+    <section class="relative min-h-screen flex items-center justify-center px-6 py-20">
+        <!-- Decorative chat bubbles -->
+        <div class="chat-bubble top-1/4 left-[10%] animate-float hidden lg:block" style="animation-delay: 0s;">Hey!</div>
+        <div class="chat-bubble top-1/3 right-[12%] animate-float hidden lg:block" style="animation-delay: 1s;">On my way</div>
+        <div class="chat-bubble bottom-1/3 left-[8%] animate-float hidden lg:block" style="animation-delay: 2s;">Thanks!</div>
+
+        <div class="max-w-5xl mx-auto text-center">
+            <!-- Logo -->
+            <div class="mb-8 animate-fade-in-up stagger-1">
+                <div class="logo-glow inline-block animate-float">
+                    <div class="w-24 h-24 mx-auto bg-whatsapp-500 rounded-[28%] flex items-center justify-center shadow-lg">
+                        <svg class="w-14 h-14 text-white" viewBox="0 0 24 24" fill="currentColor">
+                            <path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347m-5.421 7.403h-.004a9.87 9.87 0 01-5.031-1.378l-.361-.214-3.741.982.998-3.648-.235-.374a9.86 9.86 0 01-1.51-5.26c.001-5.45 4.436-9.884 9.888-9.884 2.64 0 5.122 1.03 6.988 2.898a9.825 9.825 0 012.893 6.994c-.003 5.45-4.437 9.884-9.885 9.884m8.413-18.297A11.815 11.815 0 0012.05 0C5.495 0 .16 5.335.157 11.892c0 2.096.547 4.142 1.588 5.945L.057 24l6.305-1.654a11.882 11.882 0 005.683 1.448h.005c6.554 0 11.89-5.335 11.893-11.893a11.821 11.821 0 00-3.48-8.413Z"/>
+                        </svg>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Headline -->
+            <h1 class="text-5xl md:text-7xl font-bold mb-6 tracking-tight animate-fade-in-up stagger-2 text-slate-900 dark:text-white">
+                <span class="gradient-text">WhatsApp</span> From Your Terminal
+            </h1>
+
+            <!-- Tagline -->
+            <p class="text-xl md:text-2xl text-slate-500 dark:text-slate-400 mb-8 max-w-2xl mx-auto leading-relaxed animate-fade-in-up stagger-3 font-mono">
+                Pipe it, script it, automate it.
+            </p>
+
+            <!-- Animated Terminal Demo -->
+            <div class="terminal max-w-3xl mx-auto mb-10 text-left animate-fade-in-up stagger-4">
+                <div class="terminal-header px-4 py-3 flex items-center gap-2">
+                    <div class="terminal-dot bg-red-500"></div>
+                    <div class="terminal-dot bg-yellow-500"></div>
+                    <div class="terminal-dot bg-green-500"></div>
+                    <span class="ml-4 text-sm text-slate-400">whatsapp-cli</span>
+                </div>
+                <div class="p-6 overflow-x-auto scrollbar-hide terminal-content" id="terminal-demo">
+                    <!-- Content populated by JavaScript -->
+                </div>
+            </div>
+
+            <!-- CTA Buttons -->
+            <div class="flex flex-col sm:flex-row items-center justify-center gap-4 mb-8 animate-fade-in-up stagger-5">
+                <a href="#installation" class="btn-primary px-8 py-4 text-lg font-semibold text-white inline-flex items-center gap-3">
+                    <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4"/>
+                    </svg>
+                    Install Now
+                </a>
+                <a href="https://github.com/eddmann/whatsapp-cli" class="px-8 py-4 text-lg font-semibold text-slate-600 dark:text-slate-300 hover:text-slate-900 dark:hover:text-white transition-colors inline-flex items-center gap-3 border border-slate-200 dark:border-slate-700 rounded-2xl hover:border-slate-300 dark:hover:border-slate-600 bg-white/50 dark:bg-slate-800/50 backdrop-blur">
+                    <svg class="w-5 h-5" fill="currentColor" viewBox="0 0 24 24">
+                        <path d="M12 0c-6.626 0-12 5.373-12 12 0 5.302 3.438 9.8 8.207 11.387.599.111.793-.261.793-.577v-2.234c-3.338.726-4.033-1.416-4.033-1.416-.546-1.387-1.333-1.756-1.333-1.756-1.089-.745.083-.729.083-.729 1.205.084 1.839 1.237 1.839 1.237 1.07 1.834 2.807 1.304 3.492.997.107-.775.418-1.305.762-1.604-2.665-.305-5.467-1.334-5.467-5.931 0-1.311.469-2.381 1.236-3.221-.124-.303-.535-1.524.117-3.176 0 0 1.008-.322 3.301 1.23.957-.266 1.983-.399 3.003-.404 1.02.005 2.047.138 3.006.404 2.291-1.552 3.297-1.23 3.297-1.23.653 1.653.242 2.874.118 3.176.77.84 1.235 1.911 1.235 3.221 0 4.609-2.807 5.624-5.479 5.921.43.372.823 1.102.823 2.222v3.293c0 .319.192.694.801.576 4.765-1.589 8.199-6.086 8.199-11.386 0-6.627-5.373-12-12-12z"/>
+                    </svg>
+                    View on GitHub
+                </a>
+            </div>
+
+            <!-- Badge -->
+            <div class="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-white/60 dark:bg-slate-800/60 backdrop-blur border border-slate-200 dark:border-slate-700 text-sm text-slate-500 dark:text-slate-400 animate-fade-in-up stagger-6">
+                <span class="w-2 h-2 bg-whatsapp-500 rounded-full animate-pulse"></span>
+                <span class="font-medium text-whatsapp-600 dark:text-whatsapp-400">AI Agent Ready</span>
+                <span class="text-slate-300 dark:text-slate-600">|</span>
+                <span>macOS & Linux</span>
+            </div>
+        </div>
+    </section>
+
+    <!-- Features Section -->
+    <section class="relative px-6 py-24">
+        <div class="max-w-6xl mx-auto">
+            <div class="text-center mb-16">
+                <h2 class="text-3xl md:text-4xl font-bold mb-4 text-slate-900 dark:text-white">Everything you need to automate WhatsApp</h2>
+                <p class="text-slate-500 dark:text-slate-400 text-lg max-w-2xl mx-auto">Powerful features designed for developers and power users.</p>
+            </div>
+
+            <div class="grid md:grid-cols-2 lg:grid-cols-3 gap-6">
+                <!-- Feature 1 -->
+                <div class="glass-card p-8 opacity-0-initial stagger-1">
+                    <div class="feature-icon w-14 h-14 flex items-center justify-center mb-6">
+                        <svg class="w-7 h-7 text-whatsapp-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M4 7v10c0 2.21 3.582 4 8 4s8-1.79 8-4V7M4 7c0 2.21 3.582 4 8 4s8-1.79 8-4M4 7c0-2.21 3.582-4 8-4s8 1.79 8 4m0 5c0 2.21-3.582 4-8 4s-8-1.79-8-4"/>
+                        </svg>
+                    </div>
+                    <h3 class="text-xl font-semibold mb-3 text-slate-900 dark:text-white">All Your Data</h3>
+                    <p class="text-slate-500 dark:text-slate-400 leading-relaxed">Chats, messages, contacts, groups, and media. Full access to your WhatsApp data with structured output.</p>
+                </div>
+
+                <!-- Feature 2 -->
+                <div class="glass-card p-8 opacity-0-initial stagger-2">
+                    <div class="feature-icon w-14 h-14 flex items-center justify-center mb-6">
+                        <svg class="w-7 h-7 text-whatsapp-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M8 9l3 3-3 3m5 0h3M5 20h14a2 2 0 002-2V6a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z"/>
+                        </svg>
+                    </div>
+                    <h3 class="text-xl font-semibold mb-3 text-slate-900 dark:text-white">Script & Automate</h3>
+                    <p class="text-slate-500 dark:text-slate-400 leading-relaxed">Composable with jq, xargs, pipes, and standard Unix tools. Build powerful workflows.</p>
+                </div>
+
+                <!-- Feature 3 -->
+                <div class="glass-card p-8 opacity-0-initial stagger-3">
+                    <div class="feature-icon w-14 h-14 flex items-center justify-center mb-6">
+                        <svg class="w-7 h-7 text-whatsapp-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M9.75 17L9 20l-1 1h8l-1-1-.75-3M3 13h18M5 17h14a2 2 0 002-2V5a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z"/>
+                        </svg>
+                    </div>
+                    <h3 class="text-xl font-semibold mb-3 text-slate-900 dark:text-white">AI Agent Ready</h3>
+                    <p class="text-slate-500 dark:text-slate-400 leading-relaxed">Works with Claude, Cursor, and other AI assistants. Install the skill and let agents handle your messages.</p>
+                </div>
+
+                <!-- Feature 4 -->
+                <div class="glass-card p-8 opacity-0-initial stagger-4">
+                    <div class="feature-icon w-14 h-14 flex items-center justify-center mb-6">
+                        <svg class="w-7 h-7 text-whatsapp-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"/>
+                        </svg>
+                    </div>
+                    <h3 class="text-xl font-semibold mb-3 text-slate-900 dark:text-white">Flexible Output</h3>
+                    <p class="text-slate-500 dark:text-slate-400 leading-relaxed">JSON for scripts, CSV for exports, tables for humans. Pick the format that fits.</p>
+                </div>
+
+                <!-- Feature 5 -->
+                <div class="glass-card p-8 opacity-0-initial stagger-5">
+                    <div class="feature-icon w-14 h-14 flex items-center justify-center mb-6">
+                        <svg class="w-7 h-7 text-whatsapp-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M12 19l9 2-9-18-9 18 9-2zm0 0v-8"/>
+                        </svg>
+                    </div>
+                    <h3 class="text-xl font-semibold mb-3 text-slate-900 dark:text-white">Send & React</h3>
+                    <p class="text-slate-500 dark:text-slate-400 leading-relaxed">Send text, media, reactions, and replies from the command line.</p>
+                </div>
+
+                <!-- Feature 6 -->
+                <div class="glass-card p-8 opacity-0-initial stagger-6">
+                    <div class="feature-icon w-14 h-14 flex items-center justify-center mb-6">
+                        <svg class="w-7 h-7 text-whatsapp-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"/>
+                        </svg>
+                    </div>
+                    <h3 class="text-xl font-semibold mb-3 text-slate-900 dark:text-white">Instant Search</h3>
+                    <p class="text-slate-500 dark:text-slate-400 leading-relaxed">Full-text search across all your messages. Find anything in your history instantly.</p>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- Installation Section -->
+    <section id="installation" class="relative px-6 py-24">
+        <div class="max-w-4xl mx-auto">
+            <div class="text-center mb-12">
+                <h2 class="text-3xl md:text-4xl font-bold mb-4 text-slate-900 dark:text-white">Install in seconds</h2>
+                <p class="text-slate-500 dark:text-slate-400 text-lg">Get up and running with a single command.</p>
+            </div>
+
+            <!-- Tabbed Install Terminal -->
+            <div class="terminal opacity-0-initial stagger-1">
+                <!-- Tabs -->
+                <div class="install-tabs">
+                    <button class="install-tab active" data-tab="homebrew">Homebrew</button>
+                    <button class="install-tab" data-tab="script">Install Script</button>
+                    <button class="install-tab" data-tab="skill">Agent Skill</button>
+                </div>
+
+                <!-- Homebrew content -->
+                <div class="install-tab-content active items-center py-4 pl-4 pr-2 md:pl-6 md:pr-4" data-tab-content="homebrew">
+                    <div class="relative flex-1 overflow-hidden">
+                        <div class="overflow-x-auto scrollbar-hide">
+                            <div class="flex items-center gap-2 md:gap-3 whitespace-nowrap pr-6">
+                                <span class="text-whatsapp-400 font-medium">$</span>
+                                <code class="text-slate-200 text-sm md:text-lg">brew install eddmann/tap/whatsapp-cli</code>
+                            </div>
+                        </div>
+                    </div>
+                    <button class="js-copy-command ml-2 p-2 rounded-lg hover:bg-white/10 transition-colors group flex-shrink-0" data-command="brew install eddmann/tap/whatsapp-cli" title="Copy to clipboard">
+                        <svg class="copy-icon w-5 h-5 text-slate-500 group-hover:text-slate-300 transition-colors" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 16H6a2 2 0 01-2-2V6a2 2 0 012-2h8a2 2 0 012 2v2m-6 12h8a2 2 0 002-2v-8a2 2 0 00-2-2h-8a2 2 0 00-2 2v8a2 2 0 002 2z"/>
+                        </svg>
+                        <svg class="check-icon w-5 h-5 text-whatsapp-400 hidden" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"/>
+                        </svg>
+                    </button>
+                </div>
+
+                <!-- Install Script content -->
+                <div class="install-tab-content items-center py-4 pl-4 pr-2 md:pl-6 md:pr-4" data-tab-content="script">
+                    <div class="relative flex-1 overflow-hidden">
+                        <div class="overflow-x-auto scrollbar-hide">
+                            <div class="flex items-center gap-2 md:gap-3 whitespace-nowrap pr-6">
+                                <span class="text-whatsapp-400 font-medium">$</span>
+                                <code class="text-slate-200 text-sm md:text-base">curl -fsSL https://raw.githubusercontent.com/eddmann/whatsapp-cli/main/install.sh | sh</code>
+                            </div>
+                        </div>
+                    </div>
+                    <button class="js-copy-command ml-2 p-2 rounded-lg hover:bg-white/10 transition-colors group flex-shrink-0" data-command="curl -fsSL https://raw.githubusercontent.com/eddmann/whatsapp-cli/main/install.sh | sh" title="Copy to clipboard">
+                        <svg class="copy-icon w-5 h-5 text-slate-500 group-hover:text-slate-300 transition-colors" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 16H6a2 2 0 01-2-2V6a2 2 0 012-2h8a2 2 0 012 2v2m-6 12h8a2 2 0 002-2v-8a2 2 0 00-2-2h-8a2 2 0 00-2 2v8a2 2 0 002 2z"/>
+                        </svg>
+                        <svg class="check-icon w-5 h-5 text-whatsapp-400 hidden" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"/>
+                        </svg>
+                    </button>
+                </div>
+
+                <!-- Agent Skill content -->
+                <div class="install-tab-content items-center py-4 pl-4 pr-2 md:pl-6 md:pr-4" data-tab-content="skill">
+                    <div class="relative flex-1 overflow-hidden">
+                        <div class="overflow-x-auto scrollbar-hide">
+                            <div class="flex items-center gap-2 md:gap-3 whitespace-nowrap pr-6">
+                                <span class="text-whatsapp-400 font-medium">$</span>
+                                <code class="text-slate-200 text-sm md:text-base">curl -fsSL https://raw.githubusercontent.com/eddmann/whatsapp-cli/main/install-skill.sh | sh</code>
+                            </div>
+                        </div>
+                    </div>
+                    <button class="js-copy-command ml-2 p-2 rounded-lg hover:bg-white/10 transition-colors group flex-shrink-0" data-command="curl -fsSL https://raw.githubusercontent.com/eddmann/whatsapp-cli/main/install-skill.sh | sh" title="Copy to clipboard">
+                        <svg class="copy-icon w-5 h-5 text-slate-500 group-hover:text-slate-300 transition-colors" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 16H6a2 2 0 01-2-2V6a2 2 0 012-2h8a2 2 0 012 2v2m-6 12h8a2 2 0 002-2v-8a2 2 0 00-2-2h-8a2 2 0 00-2 2v8a2 2 0 002 2z"/>
+                        </svg>
+                        <svg class="check-icon w-5 h-5 text-whatsapp-400 hidden" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"/>
+                        </svg>
+                    </button>
+                </div>
+            </div>
+
+            <p class="text-center mt-8 text-slate-400">
+                Or download directly from
+                <a href="https://github.com/eddmann/whatsapp-cli/releases" class="text-whatsapp-500 hover:text-whatsapp-600 underline underline-offset-4 transition-colors">GitHub Releases</a>
+            </p>
+        </div>
+    </section>
+
+    <!-- Footer -->
+    <footer class="relative px-6 py-16 border-t border-slate-200 dark:border-slate-800">
+        <div class="max-w-4xl mx-auto text-center">
+            <div class="mb-8 flex items-center justify-center gap-3">
+                <div class="w-10 h-10 bg-whatsapp-500 rounded-xl flex items-center justify-center">
+                    <svg class="w-6 h-6 text-white" viewBox="0 0 24 24" fill="currentColor">
+                        <path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347m-5.421 7.403h-.004a9.87 9.87 0 01-5.031-1.378l-.361-.214-3.741.982.998-3.648-.235-.374a9.86 9.86 0 01-1.51-5.26c.001-5.45 4.436-9.884 9.888-9.884 2.64 0 5.122 1.03 6.988 2.898a9.825 9.825 0 012.893 6.994c-.003 5.45-4.437 9.884-9.885 9.884m8.413-18.297A11.815 11.815 0 0012.05 0C5.495 0 .16 5.335.157 11.892c0 2.096.547 4.142 1.588 5.945L.057 24l6.305-1.654a11.882 11.882 0 005.683 1.448h.005c6.554 0 11.89-5.335 11.893-11.893a11.821 11.821 0 00-3.48-8.413Z"/>
+                    </svg>
+                </div>
+                <span class="text-2xl font-bold gradient-text">WhatsApp CLI</span>
+            </div>
+
+            <div class="flex items-center justify-center gap-6 mb-8">
+                <a href="https://github.com/eddmann/whatsapp-cli" class="text-slate-500 hover:text-slate-900 dark:hover:text-white transition-colors inline-flex items-center gap-2">
+                    <svg class="w-5 h-5" fill="currentColor" viewBox="0 0 24 24">
+                        <path d="M12 0c-6.626 0-12 5.373-12 12 0 5.302 3.438 9.8 8.207 11.387.599.111.793-.261.793-.577v-2.234c-3.338.726-4.033-1.416-4.033-1.416-.546-1.387-1.333-1.756-1.333-1.756-1.089-.745.083-.729.083-.729 1.205.084 1.839 1.237 1.839 1.237 1.07 1.834 2.807 1.304 3.492.997.107-.775.418-1.305.762-1.604-2.665-.305-5.467-1.334-5.467-5.931 0-1.311.469-2.381 1.236-3.221-.124-.303-.535-1.524.117-3.176 0 0 1.008-.322 3.301 1.23.957-.266 1.983-.399 3.003-.404 1.02.005 2.047.138 3.006.404 2.291-1.552 3.297-1.23 3.297-1.23.653 1.653.242 2.874.118 3.176.77.84 1.235 1.911 1.235 3.221 0 4.609-2.807 5.624-5.479 5.921.43.372.823 1.102.823 2.222v3.293c0 .319.192.694.801.576 4.765-1.589 8.199-6.086 8.199-11.386 0-6.627-5.373-12-12-12z"/>
+                    </svg>
+                    GitHub
+                </a>
+                <span class="text-slate-300 dark:text-slate-600">|</span>
+                <a href="https://github.com/eddmann/whatsapp-cli/releases" class="text-slate-500 hover:text-slate-900 dark:hover:text-white transition-colors">Releases</a>
+                <span class="text-slate-300 dark:text-slate-600">|</span>
+                <a href="https://github.com/eddmann/whatsapp-cli/issues" class="text-slate-500 hover:text-slate-900 dark:hover:text-white transition-colors">Issues</a>
+            </div>
+
+            <p class="text-slate-400 text-sm">
+                Built by <a href="https://eddmann.com" class="text-whatsapp-500 hover:text-whatsapp-600 transition-colors">Edd Mann</a>
+            </p>
+        </div>
+    </footer>
+
+    <script>
+        // Copy to clipboard
+        document.querySelectorAll('.js-copy-command').forEach(button => {
+            button.addEventListener('click', () => {
+                const text = button.dataset.command;
+                navigator.clipboard.writeText(text);
+                const copyIcon = button.querySelector('.copy-icon');
+                const checkIcon = button.querySelector('.check-icon');
+                copyIcon.classList.add('hidden');
+                checkIcon.classList.remove('hidden');
+                setTimeout(() => {
+                    copyIcon.classList.remove('hidden');
+                    checkIcon.classList.add('hidden');
+                }, 2000);
+            });
+        });
+
+        // Install tabs
+        document.querySelectorAll('.install-tab').forEach(tab => {
+            tab.addEventListener('click', () => {
+                const tabName = tab.dataset.tab;
+                document.querySelectorAll('.install-tab').forEach(t => t.classList.remove('active'));
+                document.querySelectorAll('.install-tab-content').forEach(c => c.classList.remove('active'));
+                tab.classList.add('active');
+                document.querySelector(`[data-tab-content="${tabName}"]`).classList.add('active');
+            });
+        });
+
+        // Intersection Observer for scroll animations
+        const observer = new IntersectionObserver((entries) => {
+            entries.forEach(entry => {
+                if (entry.isIntersecting) {
+                    entry.target.classList.remove('opacity-0-initial');
+                    entry.target.classList.add('animate-fade-in-up');
+                }
+            });
+        }, { threshold: 0.1, rootMargin: '0px 0px -50px 0px' });
+
+        document.querySelectorAll('.opacity-0-initial').forEach(el => observer.observe(el));
+
+        // Animated terminal demo
+        const terminalDemo = document.getElementById('terminal-demo');
+        const demos = [
+            {
+                command: 'whatsapp chats -f human --fields name,last_message',
+                output: `<span class="text-slate-400">NAME            LAST_MESSAGE</span>
+<span class="text-slate-200">Family Group</span>    <span class="text-slate-300">Don't forget dinner!</span>
+<span class="text-slate-200">Work Team</span>       <span class="text-slate-300">Meeting at 3pm</span>
+<span class="text-slate-200">John Doe</span>        <span class="text-slate-300">See you tomorrow</span>`
+            },
+            {
+                command: 'whatsapp search "meeting" | jq .[].content',
+                output: `<span class="text-slate-300">"Team meeting at 3pm today"</span>
+<span class="text-slate-300">"Can we reschedule the meeting?"</span>
+<span class="text-slate-300">"Meeting notes attached"</span>`
+            },
+            {
+                command: 'whatsapp messages 1234@g.us -f human --fields sender_name,content',
+                output: `<span class="text-slate-400">SENDER_NAME  CONTENT</span>
+<span class="text-slate-200">Alice</span>        <span class="text-slate-300">Meeting at 3pm</span>
+<span class="text-slate-200">Bob</span>          <span class="text-slate-300">I'll prepare the deck</span>
+<span class="text-slate-200">You</span>          <span class="text-slate-300">Good morning team!</span>`
+            },
+            {
+                command: 'whatsapp send $(whatsapp chats | jq -r .[0].jid) "OMW!"',
+                output: `<span class="text-whatsapp-400">Sent message 3EB0A1B2C3D4E5F6</span>`
+            }
+        ];
+
+        let currentDemo = 0;
+        let charIndex = 0;
+        let isTyping = true;
+        let showingOutput = false;
+        const typingSpeed = 40;
+        const outputDelay = 300;
+        const pauseBetweenDemos = 3000;
+
+        function typeCommand() {
+            const demo = demos[currentDemo];
+            const commandEl = terminalDemo.querySelector('.command-text');
+            const cursorEl = terminalDemo.querySelector('.cursor');
+
+            if (charIndex < demo.command.length) {
+                commandEl.textContent = demo.command.substring(0, charIndex + 1);
+                charIndex++;
+                setTimeout(typeCommand, typingSpeed);
+            } else {
+                // Command fully typed, show output
+                setTimeout(showOutput, outputDelay);
+            }
+        }
+
+        function showOutput() {
+            const demo = demos[currentDemo];
+            const outputEl = terminalDemo.querySelector('.output-content');
+            outputEl.innerHTML = demo.output;
+            outputEl.classList.add('visible');
+
+            // Wait, then move to next demo
+            setTimeout(nextDemo, pauseBetweenDemos);
+        }
+
+        function nextDemo() {
+            currentDemo = (currentDemo + 1) % demos.length;
+            charIndex = 0;
+            renderTerminal();
+        }
+
+        function renderTerminal() {
+            const demo = demos[currentDemo];
+            terminalDemo.innerHTML = `
+                <div class="space-y-4 text-sm md:text-base">
+                    <div class="flex items-center">
+                        <span class="text-whatsapp-400">$</span>
+                        <span class="text-slate-300 ml-2 command-text"></span><span class="cursor"></span>
+                    </div>
+                    <pre class="text-slate-400 text-xs md:text-sm leading-relaxed terminal-line output-content"></pre>
+                </div>
+            `;
+            setTimeout(typeCommand, 500);
+        }
+
+        // Start the animation
+        renderTerminal();
+
+        // Theme toggle
+        (function() {
+            const STORAGE_KEY = 'theme-preference';
+
+            function getThemePreference() {
+                const stored = localStorage.getItem(STORAGE_KEY);
+                if (stored) return stored;
+                return window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light';
+            }
+
+            function setTheme(theme) {
+                document.documentElement.classList.toggle('dark', theme === 'dark');
+            }
+
+            setTheme(getThemePreference());
+
+            document.querySelector('.js-theme-toggle').addEventListener('click', () => {
+                const current = document.documentElement.classList.contains('dark') ? 'dark' : 'light';
+                const next = current === 'dark' ? 'light' : 'dark';
+                localStorage.setItem(STORAGE_KEY, next);
+                setTheme(next);
+            });
+
+            window.matchMedia('(prefers-color-scheme: dark)').addEventListener('change', (e) => {
+                if (!localStorage.getItem(STORAGE_KEY)) {
+                    setTheme(e.matches ? 'dark' : 'light');
+                }
+            });
+        })();
+    </script>
+</body>
+</html>
