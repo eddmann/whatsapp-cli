@@ -19,6 +19,7 @@ var (
 	storeDir     string
 	timeout      time.Duration
 	verbose      bool
+	noAutoSync   bool
 
 	// Cached resolved format
 	resolvedFormat Format
@@ -40,6 +41,7 @@ func init() {
 	rootCmd.PersistentFlags().StringVar(&storeDir, "store", "", "Store directory (default: ~/.config/whatsapp-cli)")
 	rootCmd.PersistentFlags().DurationVar(&timeout, "timeout", 30*time.Second, "Command timeout")
 	rootCmd.PersistentFlags().BoolVarP(&verbose, "verbose", "v", false, "Verbose output")
+	rootCmd.PersistentFlags().BoolVar(&noAutoSync, "no-auto-sync", false, "Skip automatic sync check")
 	rootCmd.PersistentFlags().BoolP("version", "V", false, "Show version")
 
 	rootCmd.SetVersionTemplate(fmt.Sprintf("whatsapp-cli %s\n", version))
@@ -139,4 +141,9 @@ func IsJSON() bool {
 // IsVerbose returns whether verbose mode is enabled
 func IsVerbose() bool {
 	return verbose
+}
+
+// NoAutoSync returns whether auto-sync is disabled
+func NoAutoSync() bool {
+	return noAutoSync
 }

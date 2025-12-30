@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"os"
 	"strings"
+	"time"
 
 	_ "github.com/mattn/go-sqlite3"
 )
@@ -86,6 +87,11 @@ func migrate(db *sql.DB) error {
 			phone TEXT,
 			name TEXT,
 			updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+		);
+
+		CREATE TABLE IF NOT EXISTS metadata (
+			key TEXT PRIMARY KEY,
+			value TEXT
 		);
 	`)
 	if err != nil {
@@ -203,4 +209,26 @@ func (d *DB) ResolveSenderName(sender string) string {
 	}
 
 	return ""
+}
+
+// GetLastSyncTime returns the last sync time, or zero time if never synced.
+func (d *DB) GetLastSyncTime() (time.Time, error) {
+	var value sql.NullString
+	err := d.Messages.QueryRow("SELECT value FROM metadata WHERE key = 'last_sync_time'").Scan(&value)
+	if err == sql.ErrNoRows || !value.Valid {
+		return time.Time{}, nil
+	}
+	if err != nil {
+		return time.Time{}, err
+	}
+	return time.Parse(time.RFC3339, value.String)
+}
+
+// SetLastSyncTime stores the last sync time.
+func (d *DB) SetLastSyncTime(t time.Time) error {
+	_, err := d.Messages.Exec(
+		"INSERT INTO metadata (key, value) VALUES ('last_sync_time', ?) ON CONFLICT(key) DO UPDATE SET value = excluded.value",
+		t.Format(time.RFC3339),
+	)
+	return err
 }

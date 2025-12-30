@@ -96,6 +96,9 @@ func runSync(cmd *cobra.Command, args []string) error {
 
 	client.Disconnect()
 
+	// Update last sync time
+	_ = db.SetLastSyncTime(time.Now())
+
 	// Output stats
 	chatCount, _ := db.CountChats("")
 	msgCount, _ := db.CountMessages()
