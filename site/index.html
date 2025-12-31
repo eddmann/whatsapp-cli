@@ -625,89 +625,85 @@
         document.querySelectorAll('.opacity-0-initial').forEach(el => observer.observe(el));
 
         // Animated terminal demo
-        const terminalDemo = document.getElementById('terminal-demo');
-        const demos = [
-            {
-                command: 'whatsapp chats -f human --fields name,last_message',
-                output: `<span class="text-slate-400">NAME            LAST_MESSAGE</span>
+        (function() {
+            const TYPING_SPEED = 40;
+            const OUTPUT_DELAY = 300;
+            const PAUSE_BETWEEN_DEMOS = 3000;
+
+            const terminalDemo = document.getElementById('terminal-demo');
+            const demos = [
+                {
+                    command: 'whatsapp chats -f human --fields name,last_message',
+                    output: `<span class="text-slate-400">NAME            LAST_MESSAGE</span>
 <span class="text-slate-200">Family Group</span>    <span class="text-slate-300">Don't forget dinner!</span>
 <span class="text-slate-200">Work Team</span>       <span class="text-slate-300">Meeting at 3pm</span>
 <span class="text-slate-200">John Doe</span>        <span class="text-slate-300">See you tomorrow</span>`
-            },
-            {
-                command: 'whatsapp search "meeting" | jq .[].content',
-                output: `<span class="text-slate-300">"Team meeting at 3pm today"</span>
+                },
+                {
+                    command: 'whatsapp search "meeting" | jq .[].content',
+                    output: `<span class="text-slate-300">"Team meeting at 3pm today"</span>
 <span class="text-slate-300">"Can we reschedule the meeting?"</span>
 <span class="text-slate-300">"Meeting notes attached"</span>`
-            },
-            {
-                command: 'whatsapp messages 1234@g.us -f human --fields sender_name,content',
-                output: `<span class="text-slate-400">SENDER_NAME  CONTENT</span>
+                },
+                {
+                    command: 'whatsapp messages 1234@g.us -f human --fields sender_name,content',
+                    output: `<span class="text-slate-400">SENDER_NAME  CONTENT</span>
 <span class="text-slate-200">Alice</span>        <span class="text-slate-300">Meeting at 3pm</span>
 <span class="text-slate-200">Bob</span>          <span class="text-slate-300">I'll prepare the deck</span>
 <span class="text-slate-200">You</span>          <span class="text-slate-300">Good morning team!</span>`
-            },
-            {
-                command: 'whatsapp send $(whatsapp chats | jq -r .[0].jid) "OMW!"',
-                output: `<span class="text-whatsapp-400">Sent message 3EB0A1B2C3D4E5F6</span>`
+                },
+                {
+                    command: 'whatsapp send $(whatsapp chats | jq -r .[0].jid) "OMW!"',
+                    output: `<span class="text-whatsapp-400">Sent message 3EB0A1B2C3D4E5F6</span>`
+                }
+            ];
+
+            let currentDemo = 0;
+            let charIndex = 0;
+
+            function typeCommand() {
+                const demo = demos[currentDemo];
+                const commandEl = terminalDemo.querySelector('.command-text');
+
+                if (charIndex < demo.command.length) {
+                    commandEl.textContent = demo.command.substring(0, charIndex + 1);
+                    charIndex++;
+                    setTimeout(typeCommand, TYPING_SPEED);
+                } else {
+                    setTimeout(showOutput, OUTPUT_DELAY);
+                }
             }
-        ];
 
-        let currentDemo = 0;
-        let charIndex = 0;
-        let isTyping = true;
-        let showingOutput = false;
-        const typingSpeed = 40;
-        const outputDelay = 300;
-        const pauseBetweenDemos = 3000;
+            function showOutput() {
+                const demo = demos[currentDemo];
+                const outputEl = terminalDemo.querySelector('.output-content');
+                outputEl.innerHTML = demo.output;
+                outputEl.classList.add('visible');
 
-        function typeCommand() {
-            const demo = demos[currentDemo];
-            const commandEl = terminalDemo.querySelector('.command-text');
-            const cursorEl = terminalDemo.querySelector('.cursor');
-
-            if (charIndex < demo.command.length) {
-                commandEl.textContent = demo.command.substring(0, charIndex + 1);
-                charIndex++;
-                setTimeout(typeCommand, typingSpeed);
-            } else {
-                // Command fully typed, show output
-                setTimeout(showOutput, outputDelay);
+                setTimeout(nextDemo, PAUSE_BETWEEN_DEMOS);
             }
-        }
 
-        function showOutput() {
-            const demo = demos[currentDemo];
-            const outputEl = terminalDemo.querySelector('.output-content');
-            outputEl.innerHTML = demo.output;
-            outputEl.classList.add('visible');
+            function nextDemo() {
+                currentDemo = (currentDemo + 1) % demos.length;
+                charIndex = 0;
+                renderTerminal();
+            }
 
-            // Wait, then move to next demo
-            setTimeout(nextDemo, pauseBetweenDemos);
-        }
-
-        function nextDemo() {
-            currentDemo = (currentDemo + 1) % demos.length;
-            charIndex = 0;
-            renderTerminal();
-        }
-
-        function renderTerminal() {
-            const demo = demos[currentDemo];
-            terminalDemo.innerHTML = `
-                <div class="space-y-4 text-sm md:text-base">
-                    <div class="flex items-center">
-                        <span class="text-whatsapp-400">$</span>
-                        <span class="text-slate-300 ml-2 command-text"></span><span class="cursor"></span>
+            function renderTerminal() {
+                terminalDemo.innerHTML = `
+                    <div class="space-y-4 text-sm md:text-base">
+                        <div class="flex items-center">
+                            <span class="text-whatsapp-400">$</span>
+                            <span class="text-slate-300 ml-2 command-text"></span><span class="cursor"></span>
+                        </div>
+                        <pre class="text-slate-400 text-xs md:text-sm leading-relaxed terminal-line output-content"></pre>
                     </div>
-                    <pre class="text-slate-400 text-xs md:text-sm leading-relaxed terminal-line output-content"></pre>
-                </div>
-            `;
-            setTimeout(typeCommand, 500);
-        }
+                `;
+                setTimeout(typeCommand, 500);
+            }
 
-        // Start the animation
-        renderTerminal();
+            renderTerminal();
+        })();
 
         // Theme toggle
         (function() {
