@@ -207,7 +207,7 @@ func (c *Client) backfillChatNames() {
 		}
 
 		if parsed.Server == "g.us" {
-			if name == "" || name == parsed.User {
+			if name == "" || name == parsed.User || name == "Group "+parsed.User {
 				toUpdate = append(toUpdate, row{jid: jidStr, name: name})
 			}
 			continue
