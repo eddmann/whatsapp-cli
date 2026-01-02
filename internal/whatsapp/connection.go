@@ -19,19 +19,20 @@ func (c *Client) registerHandlers() {
 			// Check if sync is complete (progress == 100)
 			if v.Data != nil && v.Data.Progress != nil && *v.Data.Progress >= 100 {
 				c.Logger.Info("history sync complete")
+				c.backfillChatNames()
 				select {
 				case c.SyncComplete <- struct{}{}:
 				default:
 				}
 			}
 		case *events.OfflineSyncCompleted:
+			c.backfillChatNames()
 			select {
 			case c.SyncComplete <- struct{}{}:
 			default:
 			}
 		case *events.Connected:
 			c.Logger.Info("connected to WhatsApp")
-			go c.backfillChatNames()
 		case *events.LoggedOut:
 			c.Logger.Warn("logged out of WhatsApp")
 		}
