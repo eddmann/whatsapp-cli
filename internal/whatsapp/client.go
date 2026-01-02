@@ -250,7 +250,7 @@ func (c *Client) resolvePreferredName(jid interface{}) string {
 
 	// Groups
 	if parsedJID.Server == "g.us" {
-		if info, err := c.WA.GetGroupInfo(parsedJID); err == nil && info.Name != "" {
+		if info, err := c.WA.GetGroupInfo(context.Background(), parsedJID); err == nil && info.Name != "" {
 			return info.Name
 		}
 		return fmt.Sprintf("Group %s", parsedJID.User)

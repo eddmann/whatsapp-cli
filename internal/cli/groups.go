@@ -56,7 +56,7 @@ func runGroups(cmd *cobra.Command, args []string) error {
 				return fmt.Errorf("invalid JID: %w", err)
 			}
 
-			info, err := client.WA.GetGroupInfo(jid)
+			info, err := client.WA.GetGroupInfo(context.Background(), jid)
 			if err != nil {
 				return fmt.Errorf("failed to get group info: %w", err)
 			}
@@ -133,7 +133,7 @@ func runGroupsJoin(cmd *cobra.Command, args []string) error {
 	inviteCode := args[0]
 
 	return WithConnection(func(db *store.DB, client *whatsapp.Client) error {
-		jid, err := client.WA.JoinGroupWithLink(inviteCode)
+		jid, err := client.WA.JoinGroupWithLink(context.Background(), inviteCode)
 		if err != nil {
 			return fmt.Errorf("failed to join group: %w", err)
 		}
@@ -151,7 +151,7 @@ func runGroupsLeave(cmd *cobra.Command, args []string) error {
 	}
 
 	return WithConnection(func(db *store.DB, client *whatsapp.Client) error {
-		if err := client.WA.LeaveGroup(jid); err != nil {
+		if err := client.WA.LeaveGroup(context.Background(), jid); err != nil {
 			return fmt.Errorf("failed to leave group: %w", err)
 		}
 
@@ -169,7 +169,7 @@ func runGroupsRename(cmd *cobra.Command, args []string) error {
 	name := args[1]
 
 	return WithConnection(func(db *store.DB, client *whatsapp.Client) error {
-		if err := client.WA.SetGroupName(jid, name); err != nil {
+		if err := client.WA.SetGroupName(context.Background(), jid, name); err != nil {
 			return fmt.Errorf("failed to rename group: %w", err)
 		}
 
