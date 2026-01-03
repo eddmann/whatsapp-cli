@@ -33,7 +33,8 @@ func New(db *store.DB, baseDir string, verbose bool, logger *slog.Logger) (*Clie
 	}
 
 	// Configure logging level based on verbose flag
-	zerologLevel := zerolog.WarnLevel
+	// Default to Error to suppress whatsmeow warnings (e.g., encryption warnings for multi-device)
+	zerologLevel := zerolog.ErrorLevel
 	if verbose {
 		zerologLevel = zerolog.InfoLevel
 	}

@@ -100,6 +100,8 @@ func runAuthLogin(cmd *cobra.Command, args []string) error {
 	select {
 	case <-ctx.Done():
 		// User interrupted
+	case <-client.SyncComplete:
+		fmt.Fprintln(os.Stderr, "Initial sync complete.")
 	case <-time.After(syncTimeout):
 		fmt.Fprintln(os.Stderr, "Initial sync timeout reached. You can continue syncing with 'whatsapp sync'.")
 	}
