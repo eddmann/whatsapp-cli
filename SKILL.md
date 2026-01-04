@@ -97,7 +97,7 @@ whatsapp messages 1234567890@s.whatsapp.net --timeframe today
 
 # Search and reply
 whatsapp search "meeting" --timeframe this_week
-whatsapp send <JID> "I'll be there!" --reply-to <MSG_ID>
+whatsapp send <JID> 'See you there!' --reply-to <MSG_ID>
 
 # Filter with jq
 whatsapp messages <JID> | jq '[.[] | select(.is_from_me==false)]'

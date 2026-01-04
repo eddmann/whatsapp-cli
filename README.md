@@ -54,7 +54,7 @@ whatsapp chats
 whatsapp messages 1234567890@s.whatsapp.net
 
 # 4. Send a message
-whatsapp send 1234567890@s.whatsapp.net "Hello!"
+whatsapp send 1234567890@s.whatsapp.net 'Hello!'
 
 # 5. Search across all messages
 whatsapp search "meeting tomorrow"
