@@ -2,11 +2,6 @@ name: Release
 
 on:
   workflow_dispatch:
-    inputs:
-      version:
-        description: "Version number (e.g., 1.0.0)"
-        required: true
-        type: string
 
 jobs:
   build:
@@ -26,13 +21,19 @@ jobs:
       - name: Checkout code
         uses: actions/checkout@v4
 
+      - name: Extract version from changelog
+        id: version
+        run: |
+          VERSION=$(sed -n 's/^## \[\([^]]*\)\].*/\1/p' CHANGELOG.md | head -1)
+          echo "version=$VERSION" >> $GITHUB_OUTPUT
+
       - name: Set up Go
         uses: actions/setup-go@v5
         with:
           go-version: "1.24"
 
       - name: Set version
-        run: make set-version VERSION=${{ inputs.version }}
+        run: make set-version VERSION=${{ steps.version.outputs.version }}
 
       - name: Build binary
         run: make build
@@ -56,6 +57,25 @@ jobs:
       - name: Checkout code
         uses: actions/checkout@v4
 
+      - name: Extract changelog
+        id: changelog
+        run: |
+          VERSION=$(sed -n 's/^## \[\([^]]*\)\].*/\1/p' CHANGELOG.md | head -1)
+          echo "version=$VERSION" >> $GITHUB_OUTPUT
+
+          CONTENT=$(awk '
+            /^## \[/ {
+              if (found) exit
+              found=1
+              next
+            }
+            found { print }
+          ' CHANGELOG.md)
+
+          echo "content<<EOF" >> $GITHUB_OUTPUT
+          echo "$CONTENT" >> $GITHUB_OUTPUT
+          echo "EOF" >> $GITHUB_OUTPUT
+
       - name: Download all artifacts
         uses: actions/download-artifact@v4
         with:
@@ -74,47 +94,9 @@ jobs:
       - name: Create GitHub Release
         uses: softprops/action-gh-release@v2
         with:
-          tag_name: v${{ inputs.version }}
-          name: whatsapp-cli v${{ inputs.version }}
-          body: |
-            ## whatsapp-cli v${{ inputs.version }}
-
-            WhatsApp from your terminal. Pipe it, script it, automate it.
-
-            ### Installation
-
-            ```bash
-            # One-liner install (recommended)
-            curl -fsSL https://raw.githubusercontent.com/eddmann/whatsapp-cli/main/install.sh | sh
-
-            # Or download manually:
-
-            # macOS (Apple Silicon)
-            curl -L https://github.com/eddmann/whatsapp-cli/releases/download/v${{ inputs.version }}/whatsapp-macos-arm64 -o whatsapp
-            chmod +x whatsapp
-            sudo mv whatsapp /usr/local/bin/
-
-            # macOS (Intel)
-            curl -L https://github.com/eddmann/whatsapp-cli/releases/download/v${{ inputs.version }}/whatsapp-macos-x64 -o whatsapp
-            chmod +x whatsapp
-            sudo mv whatsapp /usr/local/bin/
-
-            # Linux (x64)
-            curl -L https://github.com/eddmann/whatsapp-cli/releases/download/v${{ inputs.version }}/whatsapp-linux-x64 -o whatsapp
-            chmod +x whatsapp
-            sudo mv whatsapp /usr/local/bin/
-            ```
-
-            ### Features
-
-            - All your WhatsApp data — chats, messages, contacts, groups, media
-            - Script and automate — composable with jq, pipes, xargs, and standard Unix tools
-            - AI agent ready — install the skill for Claude, Cursor, and other assistants
-            - Flexible output — JSON for scripts, CSV for spreadsheets, tables for humans
-
-            ### Getting Started
-
-            Run `whatsapp auth login` to authenticate (scan QR code with your phone)
+          tag_name: v${{ steps.changelog.outputs.version }}
+          name: whatsapp-cli v${{ steps.changelog.outputs.version }}
+          body: ${{ steps.changelog.outputs.content }}
           files: release/*
           draft: false
           prerelease: false
@@ -132,7 +114,7 @@ jobs:
           cd homebrew-tap
 
           # Update version
-          sed -i "s/version \".*\"/version \"${{ inputs.version }}\"/" Formula/whatsapp-cli.rb
+          sed -i "s/version \".*\"/version \"${{ steps.changelog.outputs.version }}\"/" Formula/whatsapp-cli.rb
 
           # Update ARM SHA256 (within on_arm block)
           sed -i "/on_arm/,/end/{s/sha256 \"[a-f0-9]*\"/sha256 \"${SHA_ARM}\"/;}" Formula/whatsapp-cli.rb
@@ -143,5 +125,5 @@ jobs:
           git config user.name "github-actions[bot]"
           git config user.email "github-actions[bot]@users.noreply.github.com"
           git add Formula/whatsapp-cli.rb
-          git commit -m "chore(whatsapp-cli): update to ${{ inputs.version }}"
+          git commit -m "chore(whatsapp-cli): update to ${{ steps.changelog.outputs.version }}"
           git push
