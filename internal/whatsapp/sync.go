@@ -5,6 +5,7 @@ import (
 	"strings"
 	"time"
 
+	waHistorySync "go.mau.fi/whatsmeow/proto/waHistorySync"
 	"go.mau.fi/whatsmeow/types"
 	"go.mau.fi/whatsmeow/types/events"
 )
@@ -54,12 +55,13 @@ func (c *Client) handleMessage(msg *events.Message) {
 }
 
 // handleHistorySync persists conversations and messages received during a history sync.
-func (c *Client) handleHistorySync(hs *events.HistorySync) {
+func (c *Client) handleHistorySync(hs *events.HistorySync) HistorySyncResult {
 	if hs == nil || hs.Data.Conversations == nil {
-		return
+		return HistorySyncResult{}
 	}
 
 	synced := 0
+	moreAvailable := false
 	for _, conv := range hs.Data.Conversations {
 		if conv == nil || conv.ID == nil {
 			continue
@@ -73,6 +75,10 @@ func (c *Client) handleHistorySync(hs *events.HistorySync) {
 		}
 
 		name := c.getChatName(jid.String(), chatJID, conv, "")
+		if conv.GetEndOfHistoryTransferType() == waHistorySync.Conversation_COMPLETE_BUT_MORE_MESSAGES_REMAIN_ON_PRIMARY ||
+			conv.GetEndOfHistoryTransferType() == waHistorySync.Conversation_COMPLETE_ON_DEMAND_SYNC_BUT_MORE_MSG_REMAIN_ON_PRIMARY {
+			moreAvailable = true
+		}
 
 		if len(conv.Messages) > 0 && conv.Messages[0] != nil && conv.Messages[0].Message != nil {
 			ts := conv.Messages[0].Message.GetMessageTimestamp()
@@ -173,6 +179,7 @@ func (c *Client) handleHistorySync(hs *events.HistorySync) {
 	}
 
 	c.Logger.Info("history sync persisted messages", "count", synced)
+	return HistorySyncResult{MessagesSynced: synced, MoreAvailable: moreAvailable}
 }
 
 // backfillChatNames finds chats without a proper name and updates them.

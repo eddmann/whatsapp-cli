@@ -5,6 +5,7 @@ import (
 	"os"
 
 	"github.com/mdp/qrterminal/v3"
+	waHistorySync "go.mau.fi/whatsmeow/proto/waHistorySync"
 	"go.mau.fi/whatsmeow/types/events"
 )
 
@@ -15,7 +16,13 @@ func (c *Client) registerHandlers() {
 		case *events.Message:
 			c.handleMessage(v)
 		case *events.HistorySync:
-			c.handleHistorySync(v)
+			result := c.handleHistorySync(v)
+			if v.Data != nil && v.Data.GetSyncType() == waHistorySync.HistorySync_ON_DEMAND {
+				select {
+				case c.OnDemandHistorySync <- result:
+				default:
+				}
+			}
 			// Check if sync is complete (progress == 100)
 			if v.Data != nil && v.Data.Progress != nil && *v.Data.Progress >= 100 {
 				c.Logger.Info("history sync complete")
