@@ -38,7 +38,12 @@ whatsapp search "keyword" [--chat JID] [--timeframe this_week]
 
 ### Send, Forward, React
 
+**Always verify the recipient JID before sending.** Look up the contact first, confirm the name matches, then send:
+
 ```bash
+# Step 1: Verify recipient
+whatsapp chats --query "John" | jq -r '.[0] | "\(.jid) — \(.name)"'
+# Step 2: Send only after confirming the JID matches the intended recipient
 whatsapp send <JID> "message" [--file photo.jpg] [--reply-to MSG_ID]
 whatsapp forward <TO_JID> <MSG_ID> --from <SOURCE_JID>
 whatsapp react <MSG_ID> "thumbsup" --chat <JID>
@@ -113,6 +118,20 @@ whatsapp auth status    # Check if authenticated
 whatsapp auth login     # QR code auth
 whatsapp auth logout    # Clear session
 ```
+
+## Troubleshooting
+
+```bash
+# Auth expired or connection dropped
+whatsapp auth status          # Check current state
+whatsapp auth login           # Re-authenticate if needed
+
+# Messages seem stale or missing
+whatsapp sync                 # Pull latest messages
+whatsapp doctor --connect     # Diagnose connection issues
+```
+
+If a send/forward fails, check `whatsapp auth status` first — an expired session is the most common cause. Re-run `whatsapp auth login` and retry.
 
 ## Exit Codes
 
