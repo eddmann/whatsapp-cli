@@ -5,6 +5,25 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [1.0.0] - 2026-05-20
+
+### Added
+
+- Request on-demand historical chat pages with `whatsapp backfill`
+- Report backfill progress with requested pages, synced message count, and availability of older messages
+
+### Changed
+
+- Require Go 1.25+ and refresh WhatsApp, SQLite, and supporting dependencies
+- Wait briefly after history sync completion so late-arriving messages are persisted before commands continue
+
+### Fixed
+
+- Resolve LID senders to phone-number JIDs for quoted replies in group chats (#2)
+- Improve WhatsApp auth stability with the latest whatsmeow client updates
+- Prevent empty local stores from being treated as completed offline syncs
+- Use the current reflect pointer kind when rendering selected output fields
+
 ## [0.2.1] - 2026-01-20
 
 ### Changed
@@ -39,6 +58,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 - Use macos-15-intel instead of deprecated macos-13
 
+[1.0.0]: https://github.com/eddmann/whatsapp-cli/compare/v0.2.1...v1.0.0
 [0.2.1]: https://github.com/eddmann/whatsapp-cli/compare/v0.2.0...v0.2.1
 [0.2.0]: https://github.com/eddmann/whatsapp-cli/compare/v0.1.0...v0.2.0
 [0.1.0]: https://github.com/eddmann/whatsapp-cli/releases/tag/v0.1.0
