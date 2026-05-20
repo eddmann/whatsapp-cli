@@ -242,7 +242,7 @@ func outputKeyValue(data any, fields []string) error {
 
 // derefValue unwraps pointer and interface values
 func derefValue(v reflect.Value) reflect.Value {
-	for v.Kind() == reflect.Ptr || v.Kind() == reflect.Interface {
+	for v.Kind() == reflect.Pointer || v.Kind() == reflect.Interface {
 		if v.IsNil() {
 			return reflect.Value{}
 		}
