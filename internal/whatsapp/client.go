@@ -7,6 +7,8 @@ import (
 	"log/slog"
 	"os"
 	"strings"
+	"sync"
+	"time"
 
 	"github.com/rs/zerolog"
 	"go.mau.fi/whatsmeow"
@@ -24,6 +26,9 @@ type Client struct {
 	Logger       *slog.Logger
 	BaseDir      string
 	SyncComplete chan struct{} // Signals when history sync is complete
+
+	syncCompleteMu    sync.Mutex
+	syncCompleteTimer *time.Timer
 }
 
 // New creates a new WhatsApp client.
@@ -121,6 +126,13 @@ func (c *Client) GetDeviceID() (user string, device uint16) {
 
 // Disconnect disconnects from WhatsApp.
 func (c *Client) Disconnect() {
+	c.syncCompleteMu.Lock()
+	if c.syncCompleteTimer != nil {
+		c.syncCompleteTimer.Stop()
+		c.syncCompleteTimer = nil
+	}
+	c.syncCompleteMu.Unlock()
+
 	if c.WA != nil && c.WA.IsConnected() {
 		c.WA.Disconnect()
 	}

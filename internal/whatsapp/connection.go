@@ -3,10 +3,13 @@ package whatsapp
 import (
 	"context"
 	"os"
+	"time"
 
 	"github.com/mdp/qrterminal/v3"
 	"go.mau.fi/whatsmeow/types/events"
 )
+
+const syncCompletionSettleDelay = 5 * time.Second
 
 // registerHandlers registers event handlers for WhatsApp events.
 func (c *Client) registerHandlers() {
@@ -20,21 +23,38 @@ func (c *Client) registerHandlers() {
 			if v.Data != nil && v.Data.Progress != nil && *v.Data.Progress >= 100 {
 				c.Logger.Info("history sync complete")
 				c.backfillChatNames()
-				select {
-				case c.SyncComplete <- struct{}{}:
-				default:
-				}
+				c.signalSyncCompleteAfterSettleDelay()
 			}
 		case *events.OfflineSyncCompleted:
 			c.backfillChatNames()
-			select {
-			case c.SyncComplete <- struct{}{}:
-			default:
+			count, _ := c.Store.CountMessages()
+			if count > 0 {
+				c.signalSyncCompleteAfterSettleDelay()
 			}
 		case *events.Connected:
 			c.Logger.Info("connected to WhatsApp")
 		case *events.LoggedOut:
 			c.Logger.Warn("logged out of WhatsApp")
+		}
+	})
+}
+
+func (c *Client) signalSyncCompleteAfterSettleDelay() {
+	c.syncCompleteMu.Lock()
+	defer c.syncCompleteMu.Unlock()
+
+	if c.syncCompleteTimer != nil {
+		c.syncCompleteTimer.Stop()
+	}
+
+	c.syncCompleteTimer = time.AfterFunc(syncCompletionSettleDelay, func() {
+		if !c.WA.IsConnected() {
+			return
+		}
+
+		select {
+		case c.SyncComplete <- struct{}{}:
+		default:
 		}
 	})
 }
