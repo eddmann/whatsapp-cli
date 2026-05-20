@@ -392,10 +392,9 @@ func (c *Client) buildQuotedMessage(messageID, chatJID string) (*waE2E.ContextIn
 
 	participantJID := ""
 	if strings.HasSuffix(chatJID, "@g.us") {
-		if !strings.Contains(sender, "@") {
-			participantJID = sender + "@s.whatsapp.net"
-		} else {
-			participantJID = sender
+		resolved := c.resolveParticipantJIDForGroup(sender, chatJID)
+		if resolved != "" {
+			participantJID = resolved
 		}
 	}
 
@@ -417,6 +416,71 @@ func (c *Client) buildQuotedMessage(messageID, chatJID string) (*waE2E.ContextIn
 
 	return ctx, nil
 }
+
+// resolveParticipantJID resolves a sender identifier (which may be a LID user part,
+// a phone number, or a full JID) to a proper phone-based JID for use in
+// ContextInfo.Participant. WhatsApp requires the phone JID (user@s.whatsapp.net)
+// for quoted replies in group chats to display the sender name correctly.
+func (c *Client) resolveParticipantJID(sender string) (string, bool) {
+	// If sender already contains @, it may be a full JID or LID JID
+	if strings.Contains(sender, "@") {
+		parsed, err := types.ParseJID(sender)
+		if err != nil {
+			return sender, false
+		}
+		// If it's already a phone-based JID, use it directly
+		if parsed.Server == "s.whatsapp.net" {
+			return sender, true
+		}
+		// If it's a LID JID, extract the user part and try to resolve
+		sender = parsed.User
+	}
+
+	// ALWAYS check lid_mappings first. LIDs are numeric and overlap with phone
+	// number ranges (both 7-15 digits), so we can't distinguish by format alone.
+	if c.Store != nil {
+		if phone, _, found := c.Store.GetLIDMapping(sender); found && phone != "" {
+			if !strings.Contains(phone, "@") {
+				return phone + "@s.whatsapp.net", true
+			}
+			return phone, true
+		}
+	}
+
+	// Not found in LID mappings. It might be a real phone number,
+	// or an unmapped LID. Return it but signal unresolved.
+	return sender + "@s.whatsapp.net", false
+}
+
+// resolveParticipantJIDForGroup resolves the sender to a phone JID, fetching
+// group info from WhatsApp if needed to populate LID mappings.
+func (c *Client) resolveParticipantJIDForGroup(sender, groupJID string) string {
+	// First try the fast path
+	result, resolved := c.resolveParticipantJID(sender)
+
+	if !resolved {
+		// Not found in LID mappings. Fetch group info to populate them.
+		groupParsed, err := types.ParseJID(groupJID)
+		if err == nil {
+			if info, err := c.WA.GetGroupInfo(context.Background(), groupParsed); err == nil {
+				for _, p := range info.Participants {
+					if !p.LID.IsEmpty() {
+						if !p.PhoneNumber.IsEmpty() {
+							_ = c.Store.StoreLIDMapping(p.LID.User, p.PhoneNumber.User, "")
+						} else if !p.JID.IsEmpty() && p.JID.Server == "s.whatsapp.net" {
+							_ = c.Store.StoreLIDMapping(p.LID.User, p.JID.User, "")
+						}
+					}
+				}
+			}
+		}
+		// Retry after populating mappings
+		result, _ = c.resolveParticipantJID(sender)
+	}
+
+	return result
+}
+
 
 // getMediaEmoji returns an emoji representation for media types.
 func getMediaEmoji(mediaType string) string {
