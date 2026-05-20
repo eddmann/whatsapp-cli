@@ -31,7 +31,7 @@ brew install eddmann/tap/whatsapp-cli
 
 ### From Source
 
-Requires Go 1.24+ with CGO enabled (for SQLite). FFmpeg optional for audio conversion.
+Requires Go 1.25+ with CGO enabled (for SQLite). FFmpeg optional for audio conversion.
 
 ```bash
 git clone https://github.com/eddmann/whatsapp-cli

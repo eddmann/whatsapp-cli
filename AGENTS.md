@@ -28,7 +28,7 @@ internal/
 └── whatsapp/                       # WhatsApp client (connection, sync, messaging, media)
 ```
 
-Requires Go 1.24+, CGO enabled, SQLite with FTS5. FFmpeg optional for audio.
+Requires Go 1.25+, CGO enabled, SQLite with FTS5. FFmpeg optional for audio.
 
 ### Key Pattern
 
