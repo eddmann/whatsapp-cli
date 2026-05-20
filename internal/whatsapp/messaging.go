@@ -481,7 +481,6 @@ func (c *Client) resolveParticipantJIDForGroup(sender, groupJID string) string {
 	return result
 }
 
-
 // getMediaEmoji returns an emoji representation for media types.
 func getMediaEmoji(mediaType string) string {
 	switch mediaType {
