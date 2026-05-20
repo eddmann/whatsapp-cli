@@ -29,6 +29,8 @@ type Client struct {
 
 	syncCompleteMu    sync.Mutex
 	syncCompleteTimer *time.Timer
+	backfillMu        sync.Mutex
+	pendingBackfill   *pendingBackfillRequest
 }
 
 // New creates a new WhatsApp client.
@@ -180,28 +182,6 @@ func (c *Client) getChatName(jid, chatJID string, _ any, sender string) string {
 	}
 
 	return chatJID
-}
-
-// RequestBackfill requests historical messages for a chat.
-// Note: WhatsApp controls how much history is sent.
-func (c *Client) RequestBackfill(jidStr string, count int) error {
-	jid, err := parseJID(jidStr)
-	if err != nil {
-		return err
-	}
-
-	// Request history sync for the chat
-	// Note: whatsmeow doesn't have a direct backfill method,
-	// but we can use the built-in history request if available
-	c.Logger.Info("requesting backfill", "jid", jidStr, "count", count)
-
-	// The history is typically received during the initial sync
-	// and through periodic history sync events. We can't directly
-	// request more, but logging the intent helps for debugging.
-	_ = jid
-	_ = count
-
-	return nil
 }
 
 // resolveSenderName resolves a sender identifier to a display name.

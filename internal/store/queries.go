@@ -80,6 +80,32 @@ func (d *DB) ListChats(opts ListChatsOptions) ([]Chat, error) {
 	return chats, nil
 }
 
+// OldestMessageForChat returns the earliest stored message for a chat.
+func (d *DB) OldestMessageForChat(chatJID string) (Message, error) {
+	query := `
+		SELECT m.id, m.chat_jid, m.sender,
+		       COALESCE(m.sender_name, l.name) as sender_name,
+		       m.content, m.timestamp, m.is_from_me,
+		       m.media_type, m.filename, c.name as chat_name
+		FROM messages m
+		LEFT JOIN chats c ON m.chat_jid = c.jid
+		LEFT JOIN lid_mappings l ON m.sender = l.lid
+		WHERE m.chat_jid = ? AND m.id != ''
+		ORDER BY m.timestamp ASC
+		LIMIT 1
+	`
+
+	messages, err := d.scanMessages(query, []any{chatJID})
+	if err != nil {
+		return Message{}, err
+	}
+	if len(messages) == 0 {
+		return Message{}, sql.ErrNoRows
+	}
+
+	return messages[0], nil
+}
+
 // ListMessages returns messages matching the given options.
 func (d *DB) ListMessages(opts ListMessagesOptions) ([]Message, error) {
 	query := `

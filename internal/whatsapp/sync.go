@@ -5,6 +5,7 @@ import (
 	"strings"
 	"time"
 
+	waHistorySync "go.mau.fi/whatsmeow/proto/waHistorySync"
 	"go.mau.fi/whatsmeow/types"
 	"go.mau.fi/whatsmeow/types/events"
 )
@@ -54,25 +55,35 @@ func (c *Client) handleMessage(msg *events.Message) {
 }
 
 // handleHistorySync persists conversations and messages received during a history sync.
-func (c *Client) handleHistorySync(hs *events.HistorySync) {
-	if hs == nil || hs.Data.Conversations == nil {
-		return
+func (c *Client) handleHistorySync(hs *events.HistorySync) HistorySyncResult {
+	if hs == nil || hs.Data == nil || hs.Data.Conversations == nil {
+		return HistorySyncResult{}
 	}
 
 	synced := 0
+	moreAvailable := false
+	isOnDemand := hs.Data.GetSyncType() == waHistorySync.HistorySync_ON_DEMAND
+	conversationCount := len(hs.Data.Conversations)
+
 	for _, conv := range hs.Data.Conversations {
 		if conv == nil || conv.ID == nil {
 			continue
 		}
 
-		chatJID := *conv.ID
+		responseChatJID := *conv.ID
+		chatJID := c.backfillStorageChatJID(responseChatJID, isOnDemand, conversationCount)
 		jid, err := types.ParseJID(chatJID)
 		if err != nil {
-			c.Logger.Warn("history sync: bad JID", "jid", chatJID, "err", err)
+			c.Logger.Warn("history sync: bad JID", "jid", chatJID, "response_jid", responseChatJID, "err", err)
 			continue
 		}
 
 		name := c.getChatName(jid.String(), chatJID, conv, "")
+		endType := conv.GetEndOfHistoryTransferType()
+		if endType == waHistorySync.Conversation_COMPLETE_BUT_MORE_MESSAGES_REMAIN_ON_PRIMARY ||
+			endType == waHistorySync.Conversation_COMPLETE_ON_DEMAND_SYNC_BUT_MORE_MSG_REMAIN_ON_PRIMARY {
+			moreAvailable = true
+		}
 
 		if len(conv.Messages) > 0 && conv.Messages[0] != nil && conv.Messages[0].Message != nil {
 			ts := conv.Messages[0].Message.GetMessageTimestamp()
@@ -173,6 +184,7 @@ func (c *Client) handleHistorySync(hs *events.HistorySync) {
 	}
 
 	c.Logger.Info("history sync persisted messages", "count", synced)
+	return HistorySyncResult{MessagesSynced: synced, MoreAvailable: moreAvailable}
 }
 
 // backfillChatNames finds chats without a proper name and updates them.
