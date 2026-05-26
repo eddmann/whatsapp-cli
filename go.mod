@@ -1,14 +1,14 @@
 module github.com/eddmann/whatsapp-cli
 
-go 1.25.0
+go 1.25.10
 
 require (
 	github.com/mattn/go-sqlite3 v1.14.44
-	github.com/mdp/qrterminal/v3 v3.2.0
+	github.com/mdp/qrterminal/v3 v3.2.1
 	github.com/olekukonko/tablewriter v0.0.5
 	github.com/rs/zerolog v1.35.1
-	github.com/spf13/cobra v1.8.1
-	go.mau.fi/whatsmeow v0.0.0-20260516102357-8d3700152a69
+	github.com/spf13/cobra v1.10.2
+	go.mau.fi/whatsmeow v0.0.0-20260525123251-933deb5f2ee9
 )
 
 require (
@@ -22,7 +22,7 @@ require (
 	github.com/mattn/go-isatty v0.0.20 // indirect
 	github.com/mattn/go-runewidth v0.0.9 // indirect
 	github.com/petermattis/goid v0.0.0-20260330135022-df67b199bc81 // indirect
-	github.com/spf13/pflag v1.0.5 // indirect
+	github.com/spf13/pflag v1.0.9 // indirect
 	github.com/vektah/gqlparser/v2 v2.5.27 // indirect
 	go.mau.fi/libsignal v0.2.1 // indirect
 	go.mau.fi/util v0.9.9 // indirect
