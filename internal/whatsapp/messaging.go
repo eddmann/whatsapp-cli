@@ -4,6 +4,7 @@ import (
 	"context"
 	"fmt"
 	"io/fs"
+	"mime"
 	"os"
 	"path/filepath"
 	"strings"
@@ -518,6 +519,9 @@ func classify(path string) (whatsmeow.MediaType, string) {
 	case ".ogg":
 		return whatsmeow.MediaAudio, "audio/ogg; codecs=opus"
 	default:
+		if mt := mime.TypeByExtension(ext); mt != "" {
+			return whatsmeow.MediaDocument, mt
+		}
 		return whatsmeow.MediaDocument, "application/octet-stream"
 	}
 }
