@@ -110,7 +110,7 @@ whatsapp search "keyword" --chat <jid>
 whatsapp search "keyword" --timeframe this_week
 ```
 
-### Send, Forward, React
+### Send, Forward, React, Delete
 
 ```bash
 whatsapp send <jid> "message"
@@ -121,6 +121,8 @@ whatsapp forward <to-jid> <msg-id> --from <source-jid>
 
 whatsapp react <msg-id> "thumbsup" --chat <jid>
 whatsapp react <msg-id> --remove --chat <jid>
+
+whatsapp delete <msg-id> --chat <jid>       # delete for everyone (revoke)
 ```
 
 ### Groups

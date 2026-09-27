@@ -306,6 +306,52 @@ func (c *Client) SendReaction(chatJID, messageID, emoji string, remove bool) (*S
 	}, nil
 }
 
+// RevokeMessage deletes a message for everyone by sending a revoke
+// protocol message wrapping the target message key.
+func (c *Client) RevokeMessage(chatJID, messageID string) (*SendMessageResult, error) {
+	if !c.WA.IsConnected() {
+		return &SendMessageResult{Success: false, Message: "not connected"}, fmt.Errorf("not connected")
+	}
+
+	jid, err := parseRecipient(chatJID)
+	if err != nil {
+		return &SendMessageResult{Success: false, Message: "invalid chat JID"}, err
+	}
+
+	var sender string
+	var isFromMe bool
+	row := c.Store.Messages.QueryRow(`SELECT sender, is_from_me FROM messages WHERE id = ? AND chat_jid = ?`, messageID, chatJID)
+	if err := row.Scan(&sender, &isFromMe); err != nil {
+		// CLI-sent messages can be absent from the store; revoking our
+		// own send is the default use case, so assume FromMe.
+		isFromMe = true
+	}
+
+	msg := &waE2E.Message{
+		ProtocolMessage: &waE2E.ProtocolMessage{
+			Key: &waCommon.MessageKey{
+				RemoteJID: protoString(chatJID),
+				FromMe:    protoBool(isFromMe),
+				ID:        protoString(messageID),
+			},
+			Type: waE2E.ProtocolMessage_REVOKE.Enum(),
+		},
+	}
+
+	resp, err := c.WA.SendMessage(context.Background(), jid, msg)
+	if err != nil {
+		return &SendMessageResult{Success: false, Message: err.Error()}, err
+	}
+
+	return &SendMessageResult{
+		Success:   true,
+		Message:   fmt.Sprintf("deleted message %s", messageID),
+		MessageID: resp.ID,
+		ChatJID:   jid.String(),
+		Timestamp: resp.Timestamp.Format("2006-01-02T15:04:05Z07:00"),
+	}, nil
+}
+
 // DownloadMedia looks up media from DB and downloads via whatsmeow.
 func (c *Client) DownloadMedia(messageID, chatJID string) (*DownloadMediaResult, error) {
 	var mediaType, filename, url string
