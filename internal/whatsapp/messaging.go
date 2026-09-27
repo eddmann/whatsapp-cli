@@ -135,6 +135,7 @@ func (c *Client) SendMedia(recipient, path, caption, replyToMessageID string) (*
 	case whatsmeow.MediaDocument:
 		m.DocumentMessage = &waE2E.DocumentMessage{
 			Title:         protoString(base),
+			FileName:      protoString(base),
 			Caption:       protoString(caption),
 			Mimetype:      protoString(mime),
 			URL:           &up.URL,
@@ -517,6 +518,26 @@ func classify(path string) (whatsmeow.MediaType, string) {
 		return whatsmeow.MediaVideo, "video/quicktime"
 	case ".ogg":
 		return whatsmeow.MediaAudio, "audio/ogg; codecs=opus"
+	case ".pdf":
+		return whatsmeow.MediaDocument, "application/pdf"
+	case ".doc":
+		return whatsmeow.MediaDocument, "application/msword"
+	case ".docx":
+		return whatsmeow.MediaDocument, "application/vnd.openxmlformats-officedocument.wordprocessingml.document"
+	case ".xls":
+		return whatsmeow.MediaDocument, "application/vnd.ms-excel"
+	case ".xlsx":
+		return whatsmeow.MediaDocument, "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
+	case ".ppt", ".pptx":
+		return whatsmeow.MediaDocument, "application/vnd.ms-powerpoint"
+	case ".txt", ".md":
+		return whatsmeow.MediaDocument, "text/plain"
+	case ".csv":
+		return whatsmeow.MediaDocument, "text/csv"
+	case ".json":
+		return whatsmeow.MediaDocument, "application/json"
+	case ".zip":
+		return whatsmeow.MediaDocument, "application/zip"
 	default:
 		return whatsmeow.MediaDocument, "application/octet-stream"
 	}
