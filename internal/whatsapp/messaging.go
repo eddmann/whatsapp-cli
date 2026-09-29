@@ -2,11 +2,20 @@ package whatsapp
 
 import (
 	"context"
+	"crypto/aes"
+	"crypto/cipher"
+	"crypto/hmac"
+	"crypto/sha256"
 	"fmt"
+	"io"
 	"io/fs"
+	"net/http"
 	"os"
 	"path/filepath"
 	"strings"
+	"time"
+
+	"golang.org/x/crypto/hkdf"
 
 	"go.mau.fi/whatsmeow"
 	waCommon "go.mau.fi/whatsmeow/proto/waCommon"
@@ -317,11 +326,34 @@ func (c *Client) DownloadMedia(messageID, chatJID string) (*DownloadMediaResult,
 		return &DownloadMediaResult{Success: false}, err
 	}
 
+	filename = uniqueMediaFilename(filename, messageID)
+
 	if mediaType == "" || url == "" || len(mediaKey) == 0 || len(fileSHA256) == 0 || len(fileEncSHA256) == 0 || fileLength == 0 {
 		return &DownloadMediaResult{Success: false}, fmt.Errorf("incomplete media info")
 	}
 
 	dp := extractDirectPathFromURL(url)
+
+	// URL-first route (proven Sep 29 2026): WhatsApp servers 403 the
+	// media-conn directPath route after the protocol update, while the
+	// per-message signed URL (with its oh= token) still serves 200 to a
+	// plain HTTPS GET with browser Origin/Referer headers. Try the URL
+	// route first; fall back to the whatsmeow directPath route.
+	if url != "" && len(mediaKey) > 0 {
+		if data, err := c.downloadViaURL(url, mediaKey, classifyToWA(mediaType), fileLength, fileSHA256); err == nil {
+			outPath, err2 := c.writeMediaFile(chatJID, filename, data)
+			if err2 != nil {
+				return &DownloadMediaResult{Success: false}, err2
+			}
+			return &DownloadMediaResult{
+				Success:   true,
+				MediaType: mediaType,
+				Filename:  filename,
+				Path:      outPath,
+			}, nil
+		}
+	}
+
 	dm := &downloadable{
 		URL:           url,
 		DirectPath:    dp,
@@ -354,6 +386,92 @@ func (c *Client) DownloadMedia(messageID, chatJID string) (*DownloadMediaResult,
 		Filename:  filename,
 		Path:      abs,
 	}, nil
+}
+
+// writeMediaFile persists already-decrypted media bytes for a chat.
+func (c *Client) writeMediaFile(chatJID, filename string, data []byte) (string, error) {
+	outDir := filepath.Join(c.BaseDir, strings.ReplaceAll(chatJID, ":", "_"))
+	if err := os.MkdirAll(outDir, 0755); err != nil {
+		return "", err
+	}
+	out := filepath.Join(outDir, filename)
+	if err := os.WriteFile(out, data, fs.FileMode(0644)); err != nil {
+		return "", err
+	}
+	abs, _ := filepath.Abs(out)
+	return abs, nil
+}
+
+// downloadViaURL fetches media over the per-message signed URL and decrypts
+// it locally (URL route kept working after the Sep 2026 media-conn 403s).
+// Mirrors whatsmeow's key derivation and media format:
+// keys = HKDF-SHA256(mediaKey, nil, mediaType, 112) → iv|cipherKey|macKey;
+// body = AES-CBC ciphertext || HMAC-SHA256(macKey, iv+ciphertext)[:10].
+func (c *Client) downloadViaURL(url string, mediaKey []byte, mediaType whatsmeow.MediaType, fileLength uint64, fileSHA256 []byte) ([]byte, error) {
+	req, err := http.NewRequest(http.MethodGet, url, nil)
+	if err != nil {
+		return nil, err
+	}
+	req.Header.Set("Origin", "https://web.whatsapp.com")
+	req.Header.Set("Referer", "https://web.whatsapp.com/")
+	client := &http.Client{Timeout: 60 * time.Second}
+	resp, err := client.Do(req)
+	if err != nil {
+		return nil, err
+	}
+	defer resp.Body.Close()
+	if resp.StatusCode != http.StatusOK {
+		return nil, fmt.Errorf("url download status %d", resp.StatusCode)
+	}
+	file, err := io.ReadAll(io.LimitReader(resp.Body, 100<<20))
+	if err != nil {
+		return nil, err
+	}
+
+	keys := make([]byte, 112)
+	krd := hkdf.New(sha256.New, mediaKey, nil, []byte(mediaType))
+	if _, err := io.ReadFull(krd, keys); err != nil {
+		return nil, err
+	}
+	iv, cipherKey, macKey := keys[:16], keys[16:48], keys[48:80]
+
+	if len(file) <= 10 {
+		return nil, fmt.Errorf("media too short")
+	}
+	ciphertext, mac := file[:len(file)-10], file[len(file)-10:]
+	h := hmac.New(sha256.New, macKey)
+	h.Write(iv)
+	h.Write(ciphertext)
+	if !hmac.Equal(h.Sum(nil)[:10], mac) {
+		return nil, fmt.Errorf("media hmac mismatch")
+	}
+
+	block, err := aes.NewCipher(cipherKey)
+	if err != nil {
+		return nil, err
+	}
+	if len(ciphertext)%aes.BlockSize != 0 {
+		return nil, fmt.Errorf("ciphertext not block aligned")
+	}
+	plaintext := make([]byte, len(ciphertext))
+	cipher.NewCBCDecrypter(block, iv).CryptBlocks(plaintext, ciphertext)
+
+	// strip PKCS#7 padding (final block holds 1..16 bytes of pad)
+	pad := int(plaintext[len(plaintext)-1])
+	if pad <= 0 || pad > 16 || pad > len(plaintext) {
+		return nil, fmt.Errorf("invalid padding")
+	}
+	plaintext = plaintext[:len(plaintext)-pad]
+
+	if fileLength > 0 && uint64(len(plaintext)) != fileLength {
+		return nil, fmt.Errorf("length mismatch: got %d want %d", len(plaintext), fileLength)
+	}
+	if len(fileSHA256) == sha256.Size {
+		if sum := sha256.Sum256(plaintext); sum != *(*[sha256.Size]byte)(fileSHA256) {
+			return nil, fmt.Errorf("sha256 mismatch")
+		}
+	}
+	return plaintext, nil
 }
 
 // protoString returns a pointer to a string (for protobuf).

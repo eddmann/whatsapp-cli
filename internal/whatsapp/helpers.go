@@ -2,6 +2,7 @@ package whatsapp
 
 import (
 	"fmt"
+	"path/filepath"
 	"strings"
 	"time"
 
@@ -121,6 +122,23 @@ func extractDirectPathFromURL(url string) string {
 	}
 	p := strings.SplitN(parts[1], "?", 2)[0]
 	return "/" + p
+}
+
+// uniqueMediaFilename de-collides CLI-GENERATED media filenames
+// (image_/video_/audio_/document_<sync-clock-second>) by suffixing the
+// message ID: one sync run generates the SAME name for every media row,
+// so batch downloads overwrite each other (proven Sep 29 2026 — five VNs,
+// one surviving file). Real document filenames pass through untouched.
+func uniqueMediaFilename(filename, messageID string) string {
+	base := filepath.Base(filename)
+	for _, prefix := range []string{"image_", "video_", "audio_", "document_"} {
+		if strings.HasPrefix(base, prefix) && !strings.Contains(base, messageID[:8]) {
+			ext := filepath.Ext(base)
+			stem := strings.TrimSuffix(base, ext)
+			return stem + "_" + messageID[:8] + ext
+		}
+	}
+	return filename
 }
 
 // downloadable implements whatsmeow.DownloadableMessage interface.

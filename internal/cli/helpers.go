@@ -3,6 +3,7 @@ package cli
 import (
 	"fmt"
 	"os"
+	"time"
 
 	"github.com/eddmann/whatsapp-cli/internal/store"
 	"github.com/eddmann/whatsapp-cli/internal/whatsapp"
@@ -56,6 +57,20 @@ func WithConnection(fn func(*store.DB, *whatsapp.Client) error) error {
 		return fmt.Errorf("connection failed: %w", err)
 	}
 	defer client.Disconnect()
+
+	// Wait for the login handshake to complete before running the command.
+	// Connect() only opens the websocket; commands that query the server
+	// (media download → media-conn) race ahead of login otherwise and the
+	// server answers 403 (proven Sep 29 2026 after the protocol update).
+	if !client.IsLoggedIn() {
+		deadline := time.Now().Add(10 * time.Second)
+		for !client.IsLoggedIn() && time.Now().Before(deadline) {
+			time.Sleep(100 * time.Millisecond)
+		}
+		if !client.IsLoggedIn() {
+			fmt.Fprintf(os.Stderr, "warning: login handshake did not complete within 10s; continuing\n")
+		}
+	}
 
 	// Auto-sync if needed (using existing connection)
 	if err := maybeAutoSyncWithClient(client, db); err != nil {
