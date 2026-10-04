@@ -9,7 +9,7 @@ import (
 )
 
 // WithDB opens the database and runs the provided function.
-// Performs auto-sync if last sync was over 24 hours ago.
+// Syncs from WhatsApp first, unless --no-auto-sync was passed. See autosync.go.
 func WithDB(fn func(*store.DB) error) error {
 	if err := EnsureDirectories(); err != nil {
 		return fmt.Errorf("failed to create directories: %w", err)
@@ -31,7 +31,7 @@ func WithDB(fn func(*store.DB) error) error {
 
 // WithConnection opens the database, creates a WhatsApp client, verifies authentication,
 // connects to WhatsApp, and runs the provided function.
-// Performs auto-sync if last sync was over 24 hours ago.
+// Syncs from WhatsApp first, unless --no-auto-sync was passed. See autosync.go.
 func WithConnection(fn func(*store.DB, *whatsapp.Client) error) error {
 	if err := EnsureDirectories(); err != nil {
 		return fmt.Errorf("failed to create directories: %w", err)

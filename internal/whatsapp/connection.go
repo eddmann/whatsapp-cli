@@ -35,6 +35,8 @@ func (c *Client) registerHandlers() {
 			if count > 0 {
 				c.signalSyncCompleteAfterSettleDelay()
 			}
+		case *events.ChatPresence:
+			c.handleChatPresence(v)
 		case *events.Connected:
 			c.Logger.Info("connected to WhatsApp")
 		case *events.LoggedOut:

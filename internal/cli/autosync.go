@@ -9,10 +9,28 @@ import (
 	"github.com/eddmann/whatsapp-cli/internal/whatsapp"
 )
 
-const autoSyncThreshold = 24 * time.Hour
+// autoSyncThreshold is the age a sync may reach before a read triggers a new one.
+//
+// It is zero, which means every read syncs first. That is deliberate and it is the
+// whole point of this file. It used to be 24 hours, and the effect was that any read
+// taken between syncs served a store that was silently behind, with nothing in the
+// output able to say so. On 26 September 2026 a chat read at 16:01 missed a voice
+// message that had arrived at 15:49, reported the chat as current, and the gap was
+// found only because a human said "you need to sync I think".
+//
+// A stale read that announces itself is an inconvenience. A stale read that looks
+// complete is a wrong answer, and this tool is used to decide what to reply to people.
+// Correctness wins over the round trip; a warm sync costs about 9 seconds.
+//
+// Escape hatch: --no-auto-sync. Required while `whatsapp watch` holds the connection,
+// because only one process can hold it and every read now wants one.
+const autoSyncThreshold = 0
 const autoSyncTimeout = 30 * time.Second
 
-// shouldAutoSync checks if an auto-sync is needed based on last sync time.
+// shouldAutoSync reports whether this command should sync before touching the store.
+// With the threshold at zero this is true for every read unless --no-auto-sync was
+// passed. The last-sync time is still consulted so the "last sync: ..." line can say
+// how far behind the store actually was.
 func shouldAutoSync(db *store.DB) bool {
 	if NoAutoSync() {
 		return false
@@ -20,15 +38,15 @@ func shouldAutoSync(db *store.DB) bool {
 
 	lastSync, err := db.GetLastSyncTime()
 	if err != nil {
-		return false
+		// Cannot tell how old the store is, so assume the worst and sync.
+		return true
 	}
 
-	// Never synced or sync is stale
 	if lastSync.IsZero() {
 		return true
 	}
 
-	return time.Since(lastSync) > autoSyncThreshold
+	return time.Since(lastSync) >= autoSyncThreshold
 }
 
 // formatTimeSince returns a human-readable duration since the given time.
@@ -112,10 +130,13 @@ func performQuickSync(client *whatsapp.Client, db *store.DB) error {
 	case <-client.SyncComplete:
 		fmt.Fprintln(os.Stderr, "Sync complete.")
 	case <-time.After(autoSyncTimeout):
-		fmt.Fprintln(os.Stderr, "Sync timeout (continuing with available data).")
+		// Do not record a sync time here. A sync that timed out fetched an unknown
+		// amount, and writing the clock forward on it is how a failed sync used to
+		// buy itself another full threshold of silence. The warning is the output.
+		fmt.Fprintln(os.Stderr, "Sync timeout: the store may be behind. Re-run, or pass --no-auto-sync to read it as-is.")
+		return nil
 	}
 
-	// Update last sync time regardless of timeout
 	if err := db.SetLastSyncTime(time.Now()); err != nil {
 		return fmt.Errorf("failed to update sync time: %w", err)
 	}

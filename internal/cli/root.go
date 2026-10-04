@@ -41,7 +41,7 @@ func init() {
 	rootCmd.PersistentFlags().StringVar(&storeDir, "store", "", "Store directory (default: ~/.config/whatsapp-cli)")
 	rootCmd.PersistentFlags().DurationVar(&timeout, "timeout", 30*time.Second, "Command timeout")
 	rootCmd.PersistentFlags().BoolVarP(&verbose, "verbose", "v", false, "Verbose output")
-	rootCmd.PersistentFlags().BoolVar(&noAutoSync, "no-auto-sync", false, "Skip automatic sync check")
+	rootCmd.PersistentFlags().BoolVar(&noAutoSync, "no-auto-sync", false, "Read the local store as-is, without syncing from WhatsApp first. Required while `whatsapp watch` is running, since only one process can hold the connection")
 	rootCmd.PersistentFlags().BoolP("version", "V", false, "Show version")
 
 	rootCmd.SetVersionTemplate(fmt.Sprintf("whatsapp-cli %s\n", version))

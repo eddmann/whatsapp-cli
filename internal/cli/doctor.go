@@ -1,6 +1,7 @@
 package cli
 
 import (
+	"database/sql"
 	"fmt"
 	"os"
 
@@ -11,6 +12,21 @@ import (
 )
 
 var doctorConnect bool
+
+// checkFTS5 runs a real MATCH query against messages_fts rather than trusting
+// that the table existing in sqlite_master means the fts5 module is usable.
+// CREATE VIRTUAL TABLE ... IF NOT EXISTS makes store.Open succeed even on a
+// binary built without -tags sqlite_fts5, as long as messages_fts already
+// exists from an earlier, correctly built binary — the failure then only
+// surfaces later, silently, on every message INSERT via the messages_ai
+// trigger. This is what actually caught that: a real query, not a schema check.
+func checkFTS5(messages *sql.DB) (ok bool, errMsg string) {
+	_, err := messages.Query(`SELECT rowid FROM messages_fts WHERE messages_fts MATCH 'zzz_doctor_fts5_probe' LIMIT 1`)
+	if err != nil {
+		return false, err.Error()
+	}
+	return true, ""
+}
 
 var doctorCmd = &cobra.Command{
 	Use:   "doctor",
@@ -93,6 +109,34 @@ func runDoctor(cmd *cobra.Command, args []string) error {
 		"ok":    dbOK,
 		"stats": dbStats,
 	})
+
+	// Check FTS5 is actually usable, not just that the schema exists.
+	//
+	// `messages_fts` is created with CREATE VIRTUAL TABLE ... IF NOT EXISTS,
+	// so once it exists in sqlite_master, Open() succeeds and this whole
+	// check block above stays green even on a binary built without
+	// -tags sqlite_fts5 — the failure only shows up later, silently, on
+	// every message INSERT via the messages_ai trigger, which is exactly
+	// how a 2026-09 build silently dropped messages during sync/backfill
+	// for hours at a time with no error surfaced anywhere else. Run a real
+	// MATCH query so this check fails loudly instead.
+	fts5OK, fts5Err := false, ""
+	if dbOK {
+		if db, err := store.Open(dbPath); err == nil {
+			fts5OK, fts5Err = checkFTS5(db.Messages)
+			db.CloseQuietly()
+		}
+	}
+
+	fts5Check := map[string]any{
+		"name": "Full-text search (FTS5)",
+		"ok":   fts5OK,
+	}
+	if fts5Err != "" {
+		fts5Check["error"] = fts5Err
+		fts5Check["fix"] = "Rebuild with: CGO_ENABLED=1 go build -tags sqlite_fts5 -o ~/.local/bin/whatsapp ./cmd/whatsapp (or: make build). Check `which -a whatsapp` afterward — a plain `go build` or a stale Homebrew binary ahead on PATH silently reintroduces this."
+	}
+	checks = append(checks, fts5Check)
 
 	// Check session
 	sessionPath := GetSessionDBPath()

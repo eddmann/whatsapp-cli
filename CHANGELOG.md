@@ -5,6 +5,19 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [Unreleased]
+
+### Fixed
+
+- Send documents with their real mime type and filename. PDFs and Office files went out as
+  `application/octet-stream` with no `FileName`, so recipients saw an unnamed generic file that
+  often would not open
+- `doctor` now runs a real FTS5 query instead of trusting that `messages_fts` existing in the
+  schema means the module works. A binary built without `-tags sqlite_fts5` reported healthy even
+  though `messages_fts` is created with `IF NOT EXISTS`, so `Open()` never re-attempts the create.
+  The failure only ever showed up later, silently, on every message insert via the `messages_ai`
+  trigger, dropping messages with no error anywhere in `sync` or `backfill`
+
 ## [1.0.1] - 2026-05-26
 
 ### Changed

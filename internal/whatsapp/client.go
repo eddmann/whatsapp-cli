@@ -27,6 +27,14 @@ type Client struct {
 	BaseDir      string
 	SyncComplete chan struct{} // Signals when history sync is complete
 
+	// OnMessage, when set, is called for every real-time message after it has
+	// been stored. It runs on whatsmeow's event goroutine, so keep it quick.
+	OnMessage func(store.Message)
+
+	// OnActivity, when set, is called for every chat presence update (typing,
+	// recording a voice note, paused). Same goroutine rules as OnMessage.
+	OnActivity func(Activity)
+
 	syncCompleteMu    sync.Mutex
 	syncCompleteTimer *time.Timer
 	backfillMu        sync.Mutex

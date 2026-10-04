@@ -8,6 +8,8 @@ import (
 	waHistorySync "go.mau.fi/whatsmeow/proto/waHistorySync"
 	"go.mau.fi/whatsmeow/types"
 	"go.mau.fi/whatsmeow/types/events"
+
+	"github.com/eddmann/whatsapp-cli/internal/store"
 )
 
 // handleMessage processes real-time incoming messages and persists them.
@@ -51,7 +53,32 @@ func (c *Client) handleMessage(msg *events.Message) {
 		msg.Info.ID, chatJID, sender, senderName, content, msg.Info.Timestamp, msg.Info.IsFromMe, mediaType, filename, url, mediaKey, fileSHA256, fileEncSHA256, fileLength,
 	); err != nil {
 		c.Logger.Warn("failed to store message", "id", msg.Info.ID, "chat_jid", chatJID, "err", err)
+		return
 	}
+
+	if c.OnMessage != nil {
+		c.OnMessage(store.Message{
+			ID:         msg.Info.ID,
+			ChatJID:    chatJID,
+			Sender:     sender,
+			SenderName: nonEmpty(senderName),
+			Content:    nonEmpty(content),
+			Timestamp:  msg.Info.Timestamp,
+			IsFromMe:   msg.Info.IsFromMe,
+			MediaType:  nonEmpty(mediaType),
+			Filename:   nonEmpty(filename),
+			ChatName:   nonEmpty(name),
+		})
+	}
+}
+
+// nonEmpty returns a pointer to s, or nil for the empty string, matching how
+// store.Message leaves absent optional fields out of JSON.
+func nonEmpty(s string) *string {
+	if s == "" {
+		return nil
+	}
+	return &s
 }
 
 // handleHistorySync persists conversations and messages received during a history sync.
