@@ -2,6 +2,7 @@ package whatsapp
 
 import (
 	"context"
+	"fmt"
 	"os"
 	"time"
 
@@ -66,7 +67,10 @@ func (c *Client) signalSyncCompleteAfterSettleDelay() {
 // ConnectWithQR connects to WhatsApp, displaying a QR code if needed.
 func (c *Client) ConnectWithQR(ctx context.Context) error {
 	if c.WA.Store.ID == nil {
-		qrChan, _ := c.WA.GetQRChannel(ctx)
+		qrChan, err := c.WA.GetQRChannel(ctx)
+		if err != nil {
+			return fmt.Errorf("failed to get QR channel: %w", err)
+		}
 		if err := c.WA.Connect(); err != nil {
 			return err
 		}
