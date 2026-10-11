@@ -25,9 +25,14 @@ var authLoginCmd = &cobra.Command{
 	Long: `Display a QR code in the terminal. Scan it with WhatsApp on your phone
 (Settings → Linked Devices → Link a Device) to authenticate.
 
+Use --phone <number> to link via an 8-character pairing code instead:
+on the phone, Settings → Linked Devices → Link with phone number instead.
+
 After authentication, an initial sync will start to download your message history.`,
 	RunE: runAuthLogin,
 }
+
+var authLoginPhone string
 
 var authLogoutCmd = &cobra.Command{
 	Use:   "logout",
@@ -46,6 +51,7 @@ func init() {
 	authCmd.AddCommand(authLoginCmd)
 	authCmd.AddCommand(authLogoutCmd)
 	authCmd.AddCommand(authStatusCmd)
+	authLoginCmd.Flags().StringVar(&authLoginPhone, "phone", "", "Link via pairing code: phone number of the account (international, digits only)")
 }
 
 func runAuthLogin(cmd *cobra.Command, args []string) error {
@@ -81,12 +87,24 @@ func runAuthLogin(cmd *cobra.Command, args []string) error {
 		cancel()
 	}()
 
-	// Connect with QR code
-	fmt.Fprintln(os.Stderr, "Scan this QR code with WhatsApp (Settings → Linked Devices → Link a Device):")
-	fmt.Fprintln(os.Stderr, "")
+	// Connect: QR by default, pairing code with --phone
+	if authLoginPhone != "" {
+		code, err := client.ConnectWithPairCode(ctx, authLoginPhone)
+		if err != nil {
+			return fmt.Errorf("pairing code failed: %w", err)
+		}
+		fmt.Fprintln(os.Stderr, "")
+		fmt.Fprintln(os.Stderr, "PAIRING CODE: "+code)
+		fmt.Fprintln(os.Stderr, "On the phone: WhatsApp -> Settings -> Linked Devices -> Link with phone number instead -> enter the code.")
+		fmt.Fprintln(os.Stderr, "The code expires in ~2 minutes.")
+		fmt.Fprintln(os.Stderr, "")
+	} else {
+		fmt.Fprintln(os.Stderr, "Scan this QR code with WhatsApp (Settings → Linked Devices → Link a Device):")
+		fmt.Fprintln(os.Stderr, "")
 
-	if err := client.ConnectWithQR(ctx); err != nil {
-		return fmt.Errorf("connection failed: %w", err)
+		if err := client.ConnectWithQR(ctx); err != nil {
+			return fmt.Errorf("connection failed: %w", err)
+		}
 	}
 
 	fmt.Fprintln(os.Stderr, "")
