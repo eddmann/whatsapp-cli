@@ -185,7 +185,9 @@ func (c *Client) getChatName(jid, chatJID string, _ any, sender string) string {
 }
 
 // resolveSenderName resolves a sender identifier to a display name.
-// It checks: 1) LID mappings, 2) contact store, 3) push name.
+// It checks: 1) LID mappings, 2) contact store (directly, then via the sender's
+// phone JID when the sender is a LID), 3) push name, 4) the sender's phone number.
+// It returns "" only when nothing better than the raw identifier is known.
 func (c *Client) resolveSenderName(sender string, senderJID types.JID, pushName string) string {
 	// First try LID mappings from our store
 	if c.Store != nil {
@@ -194,35 +196,88 @@ func (c *Client) resolveSenderName(sender string, senderJID types.JID, pushName 
 		}
 	}
 
-	// Try the contact store with phone-based JID
 	if !senderJID.IsEmpty() {
-		if contact, err := c.WA.Store.Contacts.GetContact(context.Background(), senderJID); err == nil {
-			if contact.FullName != "" {
-				return contact.FullName
-			}
-			if contact.PushName != "" {
-				return contact.PushName
-			}
+		if name := c.contactName(senderJID); name != "" {
+			return name
 		}
 
-		// Try as phone-based JID
-		phoneJID := types.JID{User: sender, Server: "s.whatsapp.net"}
-		if contact, err := c.WA.Store.Contacts.GetContact(context.Background(), phoneJID); err == nil {
-			if contact.FullName != "" {
-				return contact.FullName
-			}
-			if contact.PushName != "" {
-				return contact.PushName
+		// Group senders are usually LIDs; contacts are keyed by phone JID.
+		if pn, ok := c.phoneJIDFor(senderJID); ok && pn != senderJID.ToNonAD() {
+			if name := c.contactName(pn); name != "" {
+				return name
 			}
 		}
 	}
 
 	// Fall back to push name from the message
-	if pushName != "" {
+	if pushName != "" && pushName != "-" {
 		return pushName
 	}
 
+	// A phone number is still more useful than an opaque LID.
+	if pn, ok := c.phoneJIDFor(senderJID); ok && pn.User != sender {
+		return pn.User
+	}
+
 	return ""
+}
+
+// phoneJIDFor returns the phone-number JID for a user JID. LIDs are mapped via
+// whatsmeow's LID store, falling back to our lid_mappings table.
+func (c *Client) phoneJIDFor(jid types.JID) (types.JID, bool) {
+	jid = jid.ToNonAD()
+	switch jid.Server {
+	case types.DefaultUserServer:
+		return jid, true
+	case types.HiddenUserServer:
+	default:
+		return types.JID{}, false
+	}
+
+	if c.WA != nil && c.WA.Store != nil && c.WA.Store.LIDs != nil {
+		if pn, err := c.WA.Store.LIDs.GetPNForLID(context.Background(), jid); err == nil && !pn.IsEmpty() {
+			return pn.ToNonAD(), true
+		}
+	}
+
+	if c.Store != nil {
+		if phone, _, found := c.Store.GetLIDMapping(jid.User); found && phone != "" {
+			if parsed, err := types.ParseJID(phone); err == nil && strings.Contains(phone, "@") {
+				return parsed.ToNonAD(), true
+			}
+			return types.JID{User: phone, Server: types.DefaultUserServer}, true
+		}
+	}
+
+	return types.JID{}, false
+}
+
+// senderJIDFromUser rebuilds a full JID from a stored sender user part. LIDs
+// and phone numbers are both numeric, so a known LID mapping wins.
+func (c *Client) senderJIDFromUser(user string) types.JID {
+	lid := types.JID{User: user, Server: types.HiddenUserServer}
+	if _, ok := c.phoneJIDFor(lid); ok {
+		return lid
+	}
+	return types.JID{User: user, Server: types.DefaultUserServer}
+}
+
+// contactName returns the best name in the contact store for a JID, or "".
+func (c *Client) contactName(jid types.JID) string {
+	if c.WA == nil || c.WA.Store == nil || c.WA.Store.Contacts == nil {
+		return ""
+	}
+	contact, err := c.WA.Store.Contacts.GetContact(context.Background(), jid.ToNonAD())
+	if err != nil {
+		return ""
+	}
+	if contact.FullName != "" {
+		return contact.FullName
+	}
+	if contact.BusinessName != "" {
+		return contact.BusinessName
+	}
+	return contact.PushName
 }
 
 // resolvePreferredName tries to resolve a human-friendly name for a JID.
@@ -250,16 +305,17 @@ func (c *Client) resolvePreferredName(jid interface{}) string {
 	}
 
 	// Contacts
-	if contact, err := c.WA.Store.Contacts.GetContact(context.Background(), parsedJID); err == nil {
-		if contact.FullName != "" {
-			return contact.FullName
+	if name := c.contactName(parsedJID); name != "" {
+		return name
+	}
+
+	// LID-addressed chats: look up the contact by phone JID, and prefer the
+	// phone number over the opaque LID when no name is known.
+	if pn, ok := c.phoneJIDFor(parsedJID); ok && pn != parsedJID.ToNonAD() {
+		if name := c.contactName(pn); name != "" {
+			return name
 		}
-		if contact.BusinessName != "" {
-			return contact.BusinessName
-		}
-		if contact.PushName != "" {
-			return contact.PushName
-		}
+		return pn.User
 	}
 
 	return parsedJID.User

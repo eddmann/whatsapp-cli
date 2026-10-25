@@ -59,3 +59,20 @@ func TestOldestMessageForChatReturnsNoRowsWhenChatHasNoMessages(t *testing.T) {
 		t.Fatalf("expected sql.ErrNoRows, got %v", err)
 	}
 }
+
+func TestIsBareNumber(t *testing.T) {
+	for s, want := range map[string]bool{
+		"15551234567":     true,
+		"+15551234567":    true,
+		"172610642026735": true,
+		"":                false,
+		"+":               false,
+		"Ana":             false,
+		"Ana 2":           false,
+		"Group 1203":      false,
+	} {
+		if got := IsBareNumber(s); got != want {
+			t.Errorf("IsBareNumber(%q) = %v, want %v", s, got, want)
+		}
+	}
+}

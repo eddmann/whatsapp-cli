@@ -204,11 +204,27 @@ func (d *DB) ResolveSenderName(sender string) string {
 		jid = sender + "@s.whatsapp.net"
 	}
 	_ = d.Messages.QueryRow("SELECT name FROM chats WHERE jid = ?", jid).Scan(&chatName)
-	if chatName.Valid && chatName.String != "" {
+	// A chat "named" after a bare number is a placeholder, not a resolved name.
+	if chatName.Valid && chatName.String != "" && !IsBareNumber(chatName.String) {
 		return chatName.String
 	}
 
 	return ""
+}
+
+// IsBareNumber reports whether s is a phone number or LID rather than a name
+// (digits, optionally with a leading "+").
+func IsBareNumber(s string) bool {
+	s = strings.TrimPrefix(s, "+")
+	if s == "" {
+		return false
+	}
+	for _, r := range s {
+		if r < '0' || r > '9' {
+			return false
+		}
+	}
+	return true
 }
 
 // GetLastSyncTime returns the last sync time, or zero time if never synced.

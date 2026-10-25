@@ -26,11 +26,11 @@ func (c *Client) registerHandlers() {
 			// Check if sync is complete (progress == 100)
 			if v.Data != nil && v.Data.Progress != nil && *v.Data.Progress >= 100 {
 				c.Logger.Info("history sync complete")
-				c.backfillChatNames()
+				c.backfillNames()
 				c.signalSyncCompleteAfterSettleDelay()
 			}
 		case *events.OfflineSyncCompleted:
-			c.backfillChatNames()
+			c.backfillNames()
 			count, _ := c.Store.CountMessages()
 			if count > 0 {
 				c.signalSyncCompleteAfterSettleDelay()
