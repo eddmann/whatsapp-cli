@@ -26,6 +26,9 @@ type Client struct {
 	Logger       *slog.Logger
 	BaseDir      string
 	SyncComplete chan struct{} // Signals when history sync is complete
+	// HistoryActivity receives a (coalesced) signal whenever a history sync
+	// chunk is processed.
+	HistoryActivity chan struct{}
 
 	syncCompleteMu    sync.Mutex
 	syncCompleteTimer *time.Timer
@@ -92,11 +95,12 @@ func New(db *store.DB, baseDir string, verbose bool, logger *slog.Logger) (*Clie
 	}
 
 	c := &Client{
-		WA:           client,
-		Store:        db,
-		Logger:       logger,
-		BaseDir:      baseDir,
-		SyncComplete: make(chan struct{}, 1),
+		WA:              client,
+		Store:           db,
+		Logger:          logger,
+		BaseDir:         baseDir,
+		SyncComplete:    make(chan struct{}, 1),
+		HistoryActivity: make(chan struct{}, 1),
 	}
 	c.registerHandlers()
 

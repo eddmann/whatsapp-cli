@@ -7,6 +7,7 @@ import (
 
 	"github.com/mdp/qrterminal/v3"
 	waHistorySync "go.mau.fi/whatsmeow/proto/waHistorySync"
+	"go.mau.fi/whatsmeow/store"
 	"go.mau.fi/whatsmeow/types/events"
 )
 
@@ -20,6 +21,10 @@ func (c *Client) registerHandlers() {
 			c.handleMessage(v)
 		case *events.HistorySync:
 			result := c.handleHistorySync(v)
+			select {
+			case c.HistoryActivity <- struct{}{}:
+			default:
+			}
 			if v.Data != nil && v.Data.GetSyncType() == waHistorySync.HistorySync_ON_DEMAND {
 				c.completeBackfillRequest(result)
 			}
@@ -61,6 +66,22 @@ func (c *Client) signalSyncCompleteAfterSettleDelay() {
 		default:
 		}
 	})
+}
+
+// fullSyncDaysLimit caps how far back the phone goes when full history is
+// requested (~10 years, effectively everything it still has).
+const fullSyncDaysLimit = 3650
+
+// RequestFullHistorySync asks the phone for its full message history instead of
+// only recent chats. It must be called before pairing: the setting is sent with
+// the device registration, so it has no effect on an already linked device.
+func RequestFullHistorySync() {
+	requireFullSync := true
+	daysLimit := uint32(fullSyncDaysLimit)
+	store.DeviceProps.RequireFullSync = &requireFullSync
+	if store.DeviceProps.HistorySyncConfig != nil {
+		store.DeviceProps.HistorySyncConfig.FullSyncDaysLimit = &daysLimit
+	}
 }
 
 // ConnectWithQR connects to WhatsApp, displaying a QR code if needed.
