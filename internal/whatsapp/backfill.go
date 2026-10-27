@@ -17,6 +17,9 @@ type BackfillOptions struct {
 	Count int
 	Pages int
 	Wait  time.Duration
+	// After, when set, anchors each page at the oldest stored message after
+	// this time instead of the oldest overall, to fill a gap in the history.
+	After time.Time
 }
 
 type BackfillResult struct {
@@ -63,9 +66,18 @@ func (c *Client) RequestBackfill(ctx context.Context, opts BackfillOptions) (*Ba
 		Count:   opts.Count,
 	}
 
+	previousAnchor := ""
 	for page := 0; page < opts.Pages; page++ {
-		oldest, err := c.Store.OldestMessageForChat(jid.String())
+		var oldest store.Message
+		if opts.After.IsZero() {
+			oldest, err = c.Store.OldestMessageForChat(jid.String())
+		} else {
+			oldest, err = c.Store.OldestMessageForChatAfter(jid.String(), opts.After)
+		}
 		if err != nil {
+			if err == sql.ErrNoRows && !opts.After.IsZero() {
+				return nil, fmt.Errorf("no stored messages after %s for %s; nothing to anchor a backfill on", opts.After.Format(time.DateOnly), jid.String())
+			}
 			if err == sql.ErrNoRows {
 				return nil, fmt.Errorf("no stored messages found for %s; sync the chat before requesting older history", jid.String())
 			}
@@ -76,6 +88,12 @@ func (c *Client) RequestBackfill(ctx context.Context, opts BackfillOptions) (*Ba
 		if err != nil {
 			return nil, err
 		}
+		// The gap is closed (or the phone stopped returning older messages)
+		// once the anchor stops moving.
+		if anchor.ID == previousAnchor {
+			return result, nil
+		}
+		previousAnchor = anchor.ID
 		result.AnchorMessageID = anchor.ID
 		result.AnchorTimestamp = anchor.Timestamp
 

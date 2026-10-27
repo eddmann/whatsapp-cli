@@ -62,6 +62,7 @@ func (c *Client) handleHistorySync(hs *events.HistorySync) HistorySyncResult {
 
 	synced := 0
 	moreAvailable := false
+	var oldest, newest time.Time
 	isOnDemand := hs.Data.GetSyncType() == waHistorySync.HistorySync_ON_DEMAND
 	conversationCount := len(hs.Data.Conversations)
 
@@ -180,10 +181,18 @@ func (c *Client) handleHistorySync(hs *events.HistorySync) HistorySyncResult {
 				continue
 			}
 			synced++
+			if oldest.IsZero() || t.Before(oldest) {
+				oldest = t
+			}
+			if t.After(newest) {
+				newest = t
+			}
 		}
 	}
 
-	c.Logger.Info("history sync persisted messages", "count", synced)
+	c.Logger.Info("history sync persisted messages", "count", synced,
+		"type", hs.Data.GetSyncType().String(), "chunk", hs.Data.GetChunkOrder(), "progress", hs.Data.GetProgress(),
+		"oldest", oldest.Format(time.DateOnly), "newest", newest.Format(time.DateOnly))
 	return HistorySyncResult{MessagesSynced: synced, MoreAvailable: moreAvailable}
 }
 

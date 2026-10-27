@@ -82,6 +82,17 @@ func (d *DB) ListChats(opts ListChatsOptions) ([]Chat, error) {
 
 // OldestMessageForChat returns the earliest stored message for a chat.
 func (d *DB) OldestMessageForChat(chatJID string) (Message, error) {
+	return d.oldestMessage(chatJID, "", nil)
+}
+
+// OldestMessageForChatAfter returns the earliest stored message for a chat
+// strictly after the given time. Used to backfill a gap in the middle of a
+// chat's history rather than before its oldest message.
+func (d *DB) OldestMessageForChatAfter(chatJID string, after time.Time) (Message, error) {
+	return d.oldestMessage(chatJID, " AND julianday(m.timestamp) > julianday(?)", []any{after.UTC().Format("2006-01-02 15:04:05")})
+}
+
+func (d *DB) oldestMessage(chatJID, extraWhere string, extraArgs []any) (Message, error) {
 	query := `
 		SELECT m.id, m.chat_jid, m.sender,
 		       COALESCE(m.sender_name, l.name) as sender_name,
@@ -90,12 +101,12 @@ func (d *DB) OldestMessageForChat(chatJID string) (Message, error) {
 		FROM messages m
 		LEFT JOIN chats c ON m.chat_jid = c.jid
 		LEFT JOIN lid_mappings l ON m.sender = l.lid
-		WHERE m.chat_jid = ? AND m.id != ''
+		WHERE m.chat_jid = ? AND m.id != ''` + extraWhere + `
 		ORDER BY m.timestamp ASC
 		LIMIT 1
 	`
 
-	messages, err := d.scanMessages(query, []any{chatJID})
+	messages, err := d.scanMessages(query, append([]any{chatJID}, extraArgs...))
 	if err != nil {
 		return Message{}, err
 	}
