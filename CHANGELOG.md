@@ -5,6 +5,17 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [Unreleased]
+
+### Added
+
+- Machine-readable pairing: `whatsapp auth login --format jsonl` writes each QR code, the authenticated device, the sync outcome and any pairing failure as JSON lines on stdout
+
+### Fixed
+
+- `auth login` reports a pairing that ends without success (QR codes ran out, client outdated) as an error instead of continuing as if authenticated
+- Ctrl+C while the QR code is shown now stops `auth login`
+
 ## [1.0.1] - 2026-05-26
 
 ### Changed

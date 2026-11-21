@@ -8,6 +8,7 @@ import (
 	"syscall"
 	"time"
 
+	"github.com/mdp/qrterminal/v3"
 	"github.com/spf13/cobra"
 
 	"github.com/eddmann/whatsapp-cli/internal/store"
@@ -25,7 +26,15 @@ var authLoginCmd = &cobra.Command{
 	Long: `Display a QR code in the terminal. Scan it with WhatsApp on your phone
 (Settings → Linked Devices → Link a Device) to authenticate.
 
-After authentication, an initial sync will start to download your message history.`,
+After authentication, an initial sync will start to download your message history.
+
+With --format jsonl, no QR art is drawn: each step is written to stdout as one
+JSON object per line, for a program to render the QR code and follow pairing:
+
+  {"event":"qr","code":"2@...","expires_in":60}        a QR code to show; the next replaces it
+  {"event":"authenticated","user":"447700900123","device":12}
+  {"event":"sync_complete"}, {"event":"sync_timeout"} or {"event":"interrupted"}
+  {"event":"error","reason":"timeout","error":"..."}   pairing failed (exit status 1)`,
 	RunE: runAuthLogin,
 }
 
@@ -81,35 +90,73 @@ func runAuthLogin(cmd *cobra.Command, args []string) error {
 		cancel()
 	}()
 
-	// Connect with QR code
-	fmt.Fprintln(os.Stderr, "Scan this QR code with WhatsApp (Settings → Linked Devices → Link a Device):")
-	fmt.Fprintln(os.Stderr, "")
+	// With --format jsonl, each step is a JSON line on stdout instead of terminal text
+	var events *pairingEvents
+	if GetFormat() == FormatJSONL {
+		events = newPairingEvents(os.Stdout)
+	}
+	say := func(line string) {
+		if events == nil {
+			fmt.Fprintln(os.Stderr, line)
+		}
+	}
 
-	if err := client.ConnectWithQR(ctx); err != nil {
+	// Connect with QR code
+	onQR := func(code string, _ time.Duration) {
+		qrterminal.GenerateHalfBlock(code, qrterminal.L, os.Stderr)
+	}
+	if events != nil {
+		onQR = events.qr
+	}
+	say("Scan this QR code with WhatsApp (Settings → Linked Devices → Link a Device):")
+	say("")
+
+	if err := client.ConnectWithQR(ctx, onQR); err != nil {
+		if events != nil {
+			events.failed(err)
+		}
 		return fmt.Errorf("connection failed: %w", err)
 	}
 
-	fmt.Fprintln(os.Stderr, "")
-	fmt.Fprintln(os.Stderr, "Authenticated! Starting initial sync...")
-	fmt.Fprintln(os.Stderr, "This may take a few minutes depending on your message history.")
-	fmt.Fprintln(os.Stderr, "Press Ctrl+C to stop (you can resume sync later with 'whatsapp sync').")
-	fmt.Fprintln(os.Stderr, "")
+	user, device := client.GetDeviceID()
+	if events != nil {
+		events.authenticated(user, device)
+	}
+
+	say("")
+	say("Authenticated! Starting initial sync...")
+	say("This may take a few minutes depending on your message history.")
+	say("Press Ctrl+C to stop (you can resume sync later with 'whatsapp sync').")
+	say("")
 
 	// Wait for initial sync (with timeout)
 	syncTimeout := 5 * time.Minute
 	select {
 	case <-ctx.Done():
 		// User interrupted
+		if events != nil {
+			events.interrupted()
+		}
 	case <-client.SyncComplete:
-		fmt.Fprintln(os.Stderr, "Initial sync complete.")
+		say("Initial sync complete.")
+		if events != nil {
+			events.syncComplete()
+		}
 	case <-time.After(syncTimeout):
-		fmt.Fprintln(os.Stderr, "Initial sync timeout reached. You can continue syncing with 'whatsapp sync'.")
+		say("Initial sync timeout reached. You can continue syncing with 'whatsapp sync'.")
+		if events != nil {
+			events.syncTimeout()
+		}
 	}
 
 	client.Disconnect()
 
+	// The event stream already carried the result
+	if events != nil {
+		return nil
+	}
+
 	// Output result
-	user, device := client.GetDeviceID()
 	return OutputResult(map[string]any{
 		"user":   user,
 		"device": device,
