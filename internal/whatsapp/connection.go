@@ -2,10 +2,10 @@ package whatsapp
 
 import (
 	"context"
-	"os"
+	"fmt"
 	"time"
 
-	"github.com/mdp/qrterminal/v3"
+	"go.mau.fi/whatsmeow"
 	waHistorySync "go.mau.fi/whatsmeow/proto/waHistorySync"
 	"go.mau.fi/whatsmeow/types/events"
 )
@@ -63,26 +63,70 @@ func (c *Client) signalSyncCompleteAfterSettleDelay() {
 	})
 }
 
-// ConnectWithQR connects to WhatsApp, displaying a QR code if needed.
-func (c *Client) ConnectWithQR(ctx context.Context) error {
+// QRHandler receives each pairing QR code and how long it stays valid.
+type QRHandler func(code string, timeout time.Duration)
+
+// PairingError reports a QR pairing that ended without success.
+type PairingError struct {
+	// Event is the QR channel event that ended the pairing, e.g. "timeout" or "err-client-outdated".
+	Event string
+	Err   error
+}
+
+func (e *PairingError) Error() string {
+	if e.Err != nil {
+		return fmt.Sprintf("pairing failed (%s): %v", e.Event, e.Err)
+	}
+	if e.Event == whatsmeow.QRChannelTimeout.Event {
+		return "pairing failed: QR code timed out"
+	}
+	return fmt.Sprintf("pairing failed: %s", e.Event)
+}
+
+func (e *PairingError) Unwrap() error { return e.Err }
+
+// ConnectWithQR connects to WhatsApp. When the device is not paired yet, it
+// passes each QR code to onQR and returns once pairing succeeds, or a
+// *PairingError when pairing ends without success.
+func (c *Client) ConnectWithQR(ctx context.Context, onQR QRHandler) error {
 	if c.WA.Store.ID == nil {
 		qrChan, _ := c.WA.GetQRChannel(ctx)
 		if err := c.WA.Connect(); err != nil {
 			return err
 		}
-
-		for evt := range qrChan {
-			if evt.Event == "code" {
-				qrterminal.GenerateHalfBlock(evt.Code, qrterminal.L, os.Stderr)
-			} else if evt.Event == "success" {
-				break
-			}
-		}
-
-		return nil
+		return waitForPairing(ctx, qrChan, onQR)
 	}
 
 	return c.WA.Connect()
+}
+
+// waitForPairing reads the QR channel until pairing succeeds or fails.
+func waitForPairing(ctx context.Context, qrChan <-chan whatsmeow.QRChannelItem, onQR QRHandler) error {
+	for {
+		var evt whatsmeow.QRChannelItem
+		select {
+		case <-ctx.Done():
+			return ctx.Err()
+		case item, ok := <-qrChan:
+			if !ok {
+				// Closed without a final event
+				return &PairingError{Event: "closed"}
+			}
+			evt = item
+		}
+		switch evt.Event {
+		case whatsmeow.QRChannelEventCode:
+			if onQR != nil {
+				onQR(evt.Code, evt.Timeout)
+			}
+		case whatsmeow.QRChannelSuccess.Event:
+			return nil
+		case whatsmeow.QRChannelScannedWithoutMultidevice.Event:
+			// Not final: the phone can enable multi-device and scan the next code.
+		default:
+			return &PairingError{Event: evt.Event, Err: evt.Error}
+		}
+	}
 }
 
 // Connect connects to WhatsApp without QR (requires existing session).

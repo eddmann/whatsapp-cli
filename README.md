@@ -82,6 +82,21 @@ whatsapp auth logout     # Disconnect and clear session
 whatsapp auth status     # Show connection status and DB stats
 ```
 
+For a program that shows the QR code itself, `whatsapp auth login --format jsonl`
+draws no QR art and writes each step to stdout as one JSON object per line:
+
+```jsonl
+{"event":"qr","code":"2@...","expires_in":60}
+{"event":"qr","code":"2@...","expires_in":20}
+{"event":"authenticated","user":"447700900123","device":12}
+{"event":"sync_complete"}
+```
+
+A new `qr` event replaces the previous code. After `authenticated`, the last line is
+`sync_complete`, `sync_timeout` or `interrupted`. A pairing that fails writes
+`{"event":"error","reason":"timeout","error":"..."}` (the reason is the QR channel's
+event, `interrupted` or `error`) and exits with status 1.
+
 ### Sync
 
 ```bash
